@@ -1,0 +1,146 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "User Profile",
+      "description": "Stores student identity and enrollment status",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "displayName": { "type": "string" },
+        "email": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "selectedClassId": { "type": "string" },
+        "role": { "type": "string", "enum": ["student", "teacher"] },
+        "focusGoal": { "type": "string" },
+        "progress": { "type": "object" },
+        "isEnrolled": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email"]
+    },
+    "Document": {
+      "title": "Classroom Document",
+      "description": "Metadata for uploaded study materials",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "type": { "type": "string" },
+        "size": { "type": "string" },
+        "uploadedAt": { "type": "string", "format": "date-time" },
+        "userId": { "type": "string" },
+        "textLayers": { "type": "array", "items": { "type": "object" } }
+      }
+    },
+    "ChatMessage": {
+      "title": "Chat Message",
+      "description": "A single message in the study session",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "role": { "type": "string", "enum": ["user", "assistant"] },
+        "content": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "senderId": { "type": "string" }
+      },
+      "required": ["role", "content", "senderId"]
+    },
+    "Submission": {
+      "title": "Student Submission",
+      "description": "Uploaded work for DPP or Exercises with AI feedback",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "subjectId": { "type": "string" },
+        "chapterId": { "type": "string" },
+        "topicId": { "type": "string" },
+        "type": { "type": "string", "enum": ["DPP", "EXERCISE"] },
+        "pages": { "type": "array", "items": { "type": "string" } },
+        "feedback": { "type": "string" },
+        "score": { "type": "number" },
+        "accuracy": { "type": "number" },
+        "concepts": { "type": "array", "items": { "type": "string" } },
+        "mistakes": { "type": "array", "items": { "type": "string" } },
+        "timestamp": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Test": {
+      "title": "Examination Test",
+      "description": "A test created by a teacher containing multiple questions",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "duration": { "type": "number" },
+        "totalMarks": { "type": "number" },
+        "passingMarks": { "type": "number" },
+        "examType": { "type": "string" },
+        "questions": { "type": "array", "items": { "type": "object" } },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "status": { "type": "string" }
+      }
+    },
+    "TestSubmission": {
+      "title": "Student Test Submission",
+      "description": "Results of a test taken by a student",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "testId": { "type": "string" },
+        "studentId": { "type": "string" },
+        "score": { "type": "number" },
+        "timeSpent": { "type": "number" },
+        "submittedAt": { "type": "string", "format": "date-time" },
+        "analysis": { "type": "object" }
+      }
+    },
+    "PerformanceMetrics": {
+      "title": "Performance Metrics",
+      "description": "Aggregated data for Macro analysis",
+      "type": "object",
+      "properties": {
+        "eri": { "type": "number" },
+        "heatMap": { "type": "object" },
+        "memoryDecay": { "type": "object" },
+        "readinessIndex": { "type": "number" },
+        "lastAnalyzed": { "type": "string", "format": "date-time" }
+      }
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Individual user profiles"
+    },
+    "/users/{userId}/documents/{docId}": {
+      "schema": "Document",
+      "description": "Documents uploaded by the student"
+    },
+    "/users/{userId}/documents/{docId}/messages": {
+      "schema": "ChatMessage",
+      "description": "Chat transcript for a specific document study session"
+    },
+    "/users/{userId}/submissions/{submissionId}": {
+      "schema": "Submission",
+      "description": "Student work submissions and AI feedback"
+    },
+    "/tests/{testId}": {
+      "schema": "Test",
+      "description": "Available tests for students"
+    },
+    "/submissions/{submissionId}": {
+      "schema": "TestSubmission",
+      "description": "Individual student results for tests (flat collection)"
+    },
+    "/announcements/{annLogId}": {
+      "schema": "object",
+      "description": "Global teacher announcements"
+    },
+    "/users/{userId}/performance": {
+      "schema": "PerformanceMetrics",
+      "description": "Macro-level performance indicators"
+    }
+  }
+}

@@ -1,0 +1,130 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // -------------------------------------------------------------------------
+    // GLOBAL HELPERS
+    // -------------------------------------------------------------------------
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'nikhiliitjee.21@gmail.com' ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'teacher'
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // -------------------------------------------------------------------------
+    // VALIDATION HELPERS
+    // -------------------------------------------------------------------------
+    function isValidUserProfile(data) {
+      return data.uid is string && data.uid.size() <= 128 &&
+             data.email is string && data.email.size() <= 256 &&
+             (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 256)) &&
+             (!('role' in data) || (data.role in ['student', 'teacher'])) &&
+             (!('isEnrolled' in data) || (data.isEnrolled is bool));
+    }
+
+    function isValidDocument(data) {
+      return data.name is string && data.name.size() <= 512 &&
+             data.userId == request.auth.uid;
+    }
+
+    function isValidChatMessage(data) {
+      return data.role in ['user', 'assistant'] &&
+             data.content is string && data.content.size() <= 5000 &&
+             data.senderId == request.auth.uid;
+    }
+
+    function isValidSubmission(data) {
+      return data.type in ['DPP', 'EXERCISE'] &&
+             (!('score' in data) || (data.score is number)) &&
+             (!('accuracy' in data) || (data.accuracy is number));
+    }
+
+    // -------------------------------------------------------------------------
+    // MATCH BLOCKS
+    // -------------------------------------------------------------------------
+    
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // User profiles
+    match /users/{userId} {
+      allow read: if isSignedIn(); // Allow reading profile to check if teacher, but protect private data if we separate collections later
+      allow create, update: if isOwner(userId) && isValidUserProfile(incoming()) && 
+        (request.method == 'create' ? true : incoming().uid == existing().uid);
+      
+      // Document subcollection
+      match /documents/{docId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create, update: if isOwner(userId) && isValidDocument(incoming()) && isValidId(docId);
+        allow delete: if isOwner(userId);
+
+        match /messages/{messageId} {
+          allow read: if isOwner(userId) || isAdmin();
+          allow create: if isOwner(userId) && isValidChatMessage(incoming()) && isValidId(messageId);
+          allow update, delete: if false; // Messages are usually immutable
+        }
+      }
+
+      // Performance metrics subcollection
+      match /performance/{perfId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow write: if isOwner(userId) || isAdmin();
+      }
+
+      // Submission subcollection (nested version)
+      match /submissions/{subId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create, update: if isOwner(userId) && isValidSubmission(incoming()) && isValidId(subId);
+        allow delete: if isOwner(userId);
+      }
+    }
+
+    // Tests (Teacher Managed)
+    match /tests/{testId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin() && isValidId(testId);
+    }
+
+    // Global Submissions (Flat collection fallback/parallel)
+    match /submissions/{subId} {
+      allow read: if isSignedIn() && (isAdmin() || resource.data.studentId == request.auth.uid);
+      allow create: if isSignedIn() && incoming().studentId == request.auth.uid && isValidId(subId);
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // Announcements
+    match /announcements/{annId} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidId(annId);
+    }
+    
+    // Classes
+    match /classes/{classId} {
+      allow read: if true;
+      allow write: if isAdmin() && isValidId(classId);
+    }
+  }
+}
