@@ -95,7 +95,7 @@ export function useLiveAPI({
     setError(null);
 
     const timeoutId = setTimeout(() => {
-      if (isConnecting && !isActive) {
+      if (!activeSessionRef.current) {
         console.error("Connection timed out after 15s");
         setError("Connection timed out. Gemini is sleeping or the network is being difficult.");
         setIsConnecting(false);
@@ -115,7 +115,8 @@ export function useLiveAPI({
       }
 
       const ai = new GoogleGenAI({ 
-        apiKey
+        apiKey,
+        apiVersion: 'v1beta'
       });
       
       const modelName = model; 

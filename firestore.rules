@@ -20,7 +20,7 @@ service cloud.firestore {
     }
 
     function isValidId(id) {
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-\\.]+$');
     }
 
     function incoming() {
@@ -48,9 +48,9 @@ service cloud.firestore {
     }
 
     function isValidChatMessage(data) {
-      return data.role in ['user', 'assistant'] &&
-             data.content is string && data.content.size() <= 5000 &&
-             data.senderId == request.auth.uid;
+      return (data.role == 'user' || data.role == 'assistant') &&
+             data.content is string && data.content.size() <= 100000 &&
+             (data.senderId == request.auth.uid || data.senderId.startsWith('ai_nyra'));
     }
 
     function isValidSubmission(data) {
@@ -82,7 +82,7 @@ service cloud.firestore {
 
         match /messages/{messageId} {
           allow read: if isOwner(userId) || isAdmin();
-          allow create: if isOwner(userId) && isValidChatMessage(incoming()) && isValidId(messageId);
+          allow create: if isOwner(userId) && isValidChatMessage(incoming());
           allow update, delete: if false; // Messages are usually immutable
         }
       }

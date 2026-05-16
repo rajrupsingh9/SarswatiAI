@@ -2,5 +2,5 @@
   "name": "Nyra - AI Interactive Classroom",
   "description": "Transform your documents into a live interactive classroom with Nyra, your witty AI tutor. Features Student Enrollment for personalized class learning, deep document analysis with native vision, and real-time interactive whiteboard study sessions.",
   "requestFramePermissions": ["microphone"],
-  "majorCapabilities": ["AI Tutor", "Document Intelligence", "Real-time Collaboration"]
+  "majorCapabilities": ["AI Tutor", "Document Intelligence", "Real-time Collaboration", "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

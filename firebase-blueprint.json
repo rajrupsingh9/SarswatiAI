@@ -98,13 +98,27 @@
     },
     "PerformanceMetrics": {
       "title": "Performance Metrics",
-      "description": "Aggregated data for Macro analysis",
+      "description": "Aggregated data for Macro analysis including NID and Neural Hub stats",
       "type": "object",
       "properties": {
         "eri": { "type": "number" },
+        "readinessScore": { "type": "number" },
         "heatMap": { "type": "object" },
         "memoryDecay": { "type": "object" },
-        "readinessIndex": { "type": "number" },
+        "efficiencyGrid": { 
+          "type": "array", 
+          "items": { 
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "topic": { "type": "string" },
+              "speed": { "type": "number" },
+              "accuracy": { "type": "number" },
+              "zone": { "type": "string", "enum": ["Rush", "Optimal", "Slow", "Struggling"] },
+              "timestamp": { "type": "string", "format": "date-time" }
+            }
+          }
+        },
         "lastAnalyzed": { "type": "string", "format": "date-time" }
       }
     }

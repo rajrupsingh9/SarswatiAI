@@ -5,7 +5,7 @@ import {
   LogOut, Info, User, Upload, Flame, Trophy, TrendingUp, 
   BarChart2, Clock, Target, Star, LayoutDashboard, AlertCircle,
   Mic, MicOff, MessageSquare, Sparkles, Bell, Zap, Calendar, X, Brain,
-  CheckCircle2, Circle, Lock, Layers, ArrowLeft
+  CheckCircle2, Circle, Lock, Layers, ArrowLeft, Fingerprint, Activity
 } from 'lucide-react';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Cell } from 'recharts';
 import { useLiveAPI } from '../hooks/useLiveAPI';
@@ -47,7 +47,7 @@ const ProgressChat = ({ messages }: { messages: { role: string, text: string }[]
 const ADMIN_EMAIL = 'nikhiliitjee.21@gmail.com';
 
 const StudentDashboard: React.FC<StudentDashboardProps> = ({ profile, classes, onLogout, onAdminSwitch, onProfile, onUpdateProfile, onPerformanceIntel, onSelectTopic }) => {
-  const [activeTab, setActiveTab] = useState<'study' | 'analytics' | 'exam-hall' | 'help' | 'syllabus' | 'flashcards'>('study');
+  const [activeTab, setActiveTab] = useState<'study' | 'hub' | 'exam-hall' | 'help' | 'syllabus' | 'flashcards'>('study');
   const [isReviewingWithNyra, setIsReviewingWithNyra] = useState(false);
   const [reviewMessages, setReviewMessages] = useState<{ role: string, text: string }[]>([]);
   const [selectedClassId, setSelectedClassId] = useState<string | null>(profile?.selectedClassId || null);
@@ -405,9 +405,9 @@ EMOTIONAL TONE: Be encouraging but keep the sass. If they ask "How am I doing?",
         <div className="p-4 flex-1 space-y-2">
           {[
             { id: 'study', label: labels.study, icon: BookOpen },
+            { id: 'hub', label: 'Neural Hub', icon: Activity },
             { id: 'syllabus', label: 'Syllabus', icon: LayoutDashboard },
             { id: 'flashcards', label: 'Flashcards', icon: Zap },
-            { id: 'analytics', label: labels.insights, icon: TrendingUp },
             { id: 'exam-hall', label: 'Exam Hall', icon: Target },
             { id: 'help', label: 'Help Center', icon: Info }
           ].map((nav) => (
@@ -1000,6 +1000,181 @@ EMOTIONAL TONE: Be encouraging but keep the sass. If they ask "How am I doing?",
           )}
         </div>
       </div>
+    ) : activeTab === 'hub' ? (
+      <div className="flex-1 overflow-y-auto pr-4 custom-scrollbar">
+        <div className="max-w-7xl mx-auto space-y-10 pb-20 pt-4 px-6 md:px-10">
+          {/* Neural Header */}
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+             <div className="space-y-2">
+                <h2 className="text-3xl font-display font-black tracking-tight flex items-center gap-3">
+                  <Brain className="text-nyra-primary" />
+                  Neural Hub
+                </h2>
+                <p className="text-xs text-slate-500 font-bold uppercase tracking-[0.2em]">Personal Learning Command Center</p>
+             </div>
+             
+             <div className="flex items-center gap-4">
+                <div className="px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl">
+                   <div className="text-[8px] font-black text-emerald-500 uppercase tracking-widest leading-none mb-1">ERI Readiness</div>
+                   <div className="text-lg font-black text-white">{profile?.intelligenceProfile?.eri || 78}%</div>
+                </div>
+                <div className="px-4 py-2 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+                   <div className="text-[8px] font-black text-amber-500 uppercase tracking-widest leading-none mb-1">Focus Mode</div>
+                   <div className="text-lg font-black text-white">{profile?.focusGoal || 'UNIVERSAL'}</div>
+                </div>
+             </div>
+          </div>
+
+          {/* Bento Grid: Phase 1 & 2 */}
+          <div className="grid grid-cols-1 md:grid-cols-3 md:grid-rows-2 gap-4">
+            {/* ERI Widget */}
+            <div className="md:col-span-1 md:row-span-1 p-8 bg-slate-900 border border-white/5 rounded-[2.5rem] flex flex-col items-center justify-center text-center relative group overflow-hidden">
+               <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-nyra-primary/50 to-transparent" />
+               <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-6">Excellence Index</p>
+               <div className="relative mb-4">
+                  <svg className="w-40 h-40 transform -rotate-90">
+                    <circle cx="80" cy="80" r="70" fill="none" stroke="rgba(255,255,255,0.02)" strokeWidth="12" />
+                    <circle 
+                      cx="80" cy="80" r="70" fill="none" stroke="currentColor" strokeWidth="12" 
+                      strokeDasharray={2 * Math.PI * 70}
+                      strokeDashoffset={2 * Math.PI * 70 * (1 - (profile?.intelligenceProfile?.eri || 78) / 100)}
+                      strokeLinecap="round"
+                      className="text-nyra-primary"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-4xl font-black">{profile?.intelligenceProfile?.eri || 78}</span>
+                    <span className="text-[8px] font-black text-slate-500 uppercase">Sector Master</span>
+                  </div>
+               </div>
+               <div className="flex items-center gap-2 text-emerald-500 bg-emerald-500/10 px-3 py-1 rounded-full">
+                  <TrendingUp size={12} />
+                  <span className="text-[9px] font-black uppercase tracking-widest">+12% vs Prev Week</span>
+               </div>
+            </div>
+
+            {/* Cognitive DNA (NID) Radar Placeholder / Visual */}
+            <div className="md:col-span-1 md:row-span-1 p-8 bg-slate-900 border border-white/5 rounded-[2.5rem] relative overflow-hidden group">
+               <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                    <Fingerprint className="text-nyra-primary" size={14} />
+                    Neural Intelligence ID
+                  </h3>
+                  <div className="w-6 h-6 rounded-full bg-nyra-primary/10 border border-nyra-primary/30 flex items-center justify-center">
+                     <span className="text-[8px] font-black text-nyra-primary">ID</span>
+                  </div>
+               </div>
+               
+               <div className="space-y-4">
+                  {[
+                    { label: 'Calculation', val: profile?.intelligenceProfile?.calculationAbility || 82, color: 'text-blue-500' },
+                    { label: 'Conceptual', val: profile?.intelligenceProfile?.conceptualStrength || 75, color: 'text-nyra-primary' },
+                    { label: 'Reasoning', val: profile?.intelligenceProfile?.reasoningPower || 68, color: 'text-amber-500' },
+                    { label: 'Persistence', val: profile?.intelligenceProfile?.learningPersistence || 91, color: 'text-emerald-500' },
+                  ].map(stat => (
+                    <div key={stat.label} className="space-y-1">
+                      <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-widest">
+                        <span className="text-slate-500">{stat.label}</span>
+                        <span className="text-white">{stat.val}%</span>
+                      </div>
+                      <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+                        <motion.div 
+                          initial={{ width: 0 }}
+                          animate={{ width: `${stat.val}%` }}
+                          className={`h-full ${stat.color.replace('text', 'bg')}`}
+                        />
+                      </div>
+                    </div>
+                  ))}
+               </div>
+               <div className="absolute bottom-0 right-0 p-8 opacity-[0.03] group-hover:opacity-10 transition-opacity">
+                  <Activity size={80} />
+               </div>
+            </div>
+
+            {/* Remedial Plan / Nyra Analysis */}
+            <div className="md:col-span-1 md:row-span-2 p-8 bg-gradient-to-b from-nyra-primary/10 to-transparent border border-nyra-primary/20 rounded-[2.5rem] flex flex-col">
+               <div className="flex items-center gap-3 mb-6">
+                  <div className="w-10 h-10 bg-nyra-primary/20 rounded-xl flex items-center justify-center border border-nyra-primary/30">
+                     <Sparkles className="text-nyra-primary" size={20} />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-black uppercase tracking-widest leading-none">Neural Link</h3>
+                    <p className="text-[9px] text-slate-500 font-bold mt-1">Status: Synced with your DNA</p>
+                  </div>
+               </div>
+               
+               <div className="flex-1 space-y-4 mb-8">
+                  <div className="p-5 bg-white/5 border border-white/10 rounded-2xl relative">
+                     <div className="absolute -left-2 top-6 w-4 h-4 bg-nyra-primary/20 rotate-45 border-l border-b border-nyra-primary/30" />
+                     <p className="text-xs text-white leading-relaxed italic">
+                        "Your **Calculation Ability** has spiked by 15% after yesterday's DPP. However, I see a latency in **Rotational Dynamics** conceptual recall. Shall we perform a 'Neural Re-Scan'?"
+                     </p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                     <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Recommended Actions</p>
+                     {[
+                       { task: 'Revision: Chemical Bonding', icon: Zap, color: 'text-amber-500' },
+                       { task: 'DPP: Projectile Motion', icon: BookOpen, color: 'text-nyra-primary' },
+                       { task: 'Neural Session: Growth Map', icon: Brain, color: 'text-emerald-500' }
+                     ].map((item, i) => (
+                       <div key={i} className="flex items-center gap-3 p-3 bg-white/[0.02] border border-white/5 rounded-xl hover:bg-white/5 transition-colors cursor-pointer group">
+                          <item.icon size={14} className={item.color} />
+                          <span className="text-[10px] font-bold text-slate-400 group-hover:text-white">{item.task}</span>
+                       </div>
+                     ))}
+                  </div>
+               </div>
+
+               <button 
+                  onClick={() => setIsReviewingWithNyra(true)}
+                  className="w-full py-5 bg-nyra-primary text-white rounded-[2rem] font-black text-xs uppercase tracking-widest hover:brightness-110 shadow-2xl shadow-nyra-primary/40 active:scale-[0.98] transition-all flex items-center justify-center gap-3"
+               >
+                  <Mic size={16} />
+                  Ignite Analysis
+               </button>
+            </div>
+
+            {/* Submissions Stats / Streaks */}
+            <div className="md:col-span-2 md:row-span-1 grid grid-cols-2 md:grid-cols-4 gap-4">
+              {[
+                { label: 'Current Streak', val: `${profile?.progress?.streak || 5} Days`, icon: Flame, color: 'text-amber-500' },
+                { label: 'Total Time', val: '42.5h', icon: Clock, color: 'text-blue-500' },
+                { label: 'Accuracy', val: '86%', icon: Target, color: 'text-emerald-500' },
+                { label: 'Badges', val: profile?.progress?.badges?.length || 12, icon: Trophy, color: 'text-nyra-primary' }
+              ].map((stat, i) => (
+                <div key={stat.label} className="p-6 bg-slate-900 border border-white/5 rounded-[2.5rem] relative overflow-hidden group">
+                   <div className={`p-3 rounded-xl ${stat.color.replace('text', 'bg')}/10 border ${stat.color.replace('text', 'border')}/20 w-fit mb-4`}>
+                      <stat.icon size={20} className={stat.color} />
+                   </div>
+                   <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">{stat.label}</p>
+                   <p className="text-2xl font-black tracking-tight">{stat.val}</p>
+                   <div className="absolute bottom-0 right-0 p-4 opacity-5 translate-y-1/2 translate-x-1/2 group-hover:scale-125 transition-transform">
+                      <stat.icon size={60} />
+                   </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Deep Analytics View Injection */}
+          <div className="space-y-6">
+             <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                   <div className="p-2 bg-white/5 rounded-lg">
+                      <BarChart2 className="text-nyra-primary" size={16} />
+                   </div>
+                   <h3 className="text-sm font-black uppercase tracking-widest">Neural Efficiency & Patterns</h3>
+                </div>
+                <div className="px-3 py-1 bg-white/5 border border-white/10 rounded-full text-[9px] font-black text-slate-500 uppercase tracking-widest">
+                   Real-time Data Active
+                </div>
+             </div>
+             <StudentAnalytics profile={profile} submissions={testSubmissions} classes={classes} />
+          </div>
+        </div>
+      </div>
     ) : activeTab === 'exam-hall' ? (
       <div className="flex-1 overflow-y-auto pr-4 custom-scrollbar">
         <div className="max-w-6xl mx-auto py-10">
@@ -1016,185 +1191,89 @@ EMOTIONAL TONE: Be encouraging but keep the sass. If they ask "How am I doing?",
           <StudentManual />
         </div>
       </div>
-    ) : (
-      <div className="flex-1 overflow-y-auto pr-4 custom-scrollbar">
-        <div className="max-w-6xl mx-auto space-y-10 pb-20 pt-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {[
-              { label: 'Current Streak', value: `${profile?.progress?.streak || mockProgress.streak} Days`, icon: Flame, color: 'text-amber-500', bg: 'bg-amber-500/5' },
-              { label: 'Readiness', value: `${mockProgress.readiness}%`, icon: Target, color: 'text-blue-500', bg: 'bg-blue-500/5', sub: '↑ 4% this month' },
-              { label: 'Study Time', value: '42.5 Hrs', icon: Clock, color: 'text-purple-500', bg: 'bg-purple-500/5' },
-              { label: 'Mastery Badges', value: '12', icon: Trophy, color: 'text-emerald-500', bg: 'bg-emerald-500/5' }
-            ].map((stat, i) => (
-              <div key={i} className="p-6 bg-white/[0.03] border border-white/5 rounded-3xl relative overflow-hidden group">
-                <stat.icon size={24} className={`${stat.color} mb-4 opacity-80 group-hover:scale-110 transition-transform`} />
-                <div className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">{stat.label}</div>
-                <div className="text-3xl font-black">{stat.value}</div>
-                {stat.sub && <div className="text-[8px] text-emerald-500 font-bold mt-1 uppercase tracking-widest">{stat.sub}</div>}
-              </div>
-            ))}
-          </div>
-
-          <div className="flex items-center justify-between p-8 bg-gradient-to-r from-nyra-primary/10 to-indigo-500/10 border border-nyra-primary/20 rounded-[2.5rem] relative overflow-hidden">
-             <div className="relative z-10 space-y-2">
-                <h3 className="text-2xl font-black italic">Consult NYRA Intel</h3>
-                <p className="text-slate-400 text-sm max-w-md">Get an AI-generated remedial plan based on your recent performance patterns and DPP submissions.</p>
-             </div>
-             <button 
-                onClick={() => setIsReviewingWithNyra(true)}
-                className="relative z-10 px-8 py-4 bg-nyra-primary text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-xl shadow-nyra-primary/40 flex items-center gap-3"
-             >
-                <Sparkles size={16} />
-                Generate Recovery Plan
-             </button>
-             <div className="absolute top-0 right-0 w-64 h-64 bg-nyra-primary/10 blur-[80px] rounded-full translate-x-1/2 -translate-y-1/2 pointer-events-none" />
-          </div>
-
-          <StudentAnalytics profile={profile} submissions={testSubmissions} classes={classes} />
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Time Analytics */}
-            <div className="p-8 bg-white/[0.02] border border-white/5 rounded-[2.5rem]">
-              <div className="flex items-center justify-between mb-8">
-                <h3 className="text-sm font-black uppercase tracking-widest flex items-center gap-3 text-slate-400">
-                  <Clock className="text-nyra-primary" size={16} />
-                  Time Velocity
-                </h3>
-              </div>
-              <div className="h-[250px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={mockProgress.timeData}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ffffff05" />
-                    <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{fill: '#475569', fontSize: 10}} />
-                    <YAxis axisLine={false} tickLine={false} tick={{fill: '#475569', fontSize: 10}} />
-                    <Tooltip 
-                      cursor={{fill: 'rgba(255,255,255,0.02)'}}
-                      contentStyle={{backgroundColor: '#0f172a', border: '1px solid #ffffff10', borderRadius: '12px'}}
-                    />
-                    <Bar dataKey="mins" radius={[4, 4, 0, 0]}>
-                      {mockProgress.timeData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.mins > 100 ? '#818cf8' : '#6366f133'} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            {/* Mastery Grid */}
-            <div className="p-8 bg-white/[0.02] border border-white/5 rounded-[2.5rem]">
-              <h3 className="text-sm font-black uppercase tracking-widest mb-8 flex items-center gap-3 text-slate-400">
-                <Target className="text-indigo-400" size={16} />
-                Neural Mastery
-              </h3>
-              <div className="space-y-8">
-                {Object.entries(mockProgress.mastery).map(([status, count]) => (
-                  <div key={status} className="space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className={`text-[9px] font-black uppercase tracking-widest ${
-                        status === 'Mastered' ? 'text-emerald-500' : status === 'Needs Focus' ? 'text-rose-500' : 'text-amber-500'
-                      }`}>{status}</span>
-                      <span className="text-xs font-bold text-slate-500">{count} Topics</span>
-                    </div>
-                    <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
-                      <motion.div 
-                        initial={{ width: 0 }}
-                        animate={{ width: `${(count / 25) * 100}%` }}
-                        className={`h-full transition-all duration-1000 ${
-                          status === 'Mastered' ? 'bg-emerald-500' : status === 'Needs Focus' ? 'bg-rose-500' : 'bg-amber-500'
-                        }`}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    )}
+    ) : null}
   </main>
 
-      <AnimatePresence>
-        {isReviewingWithNyra && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-nyra-dark/95 backdrop-blur-2xl"
-          >
-            <div className="w-full max-w-4xl bg-slate-900 border border-white/10 rounded-[3rem] shadow-2xl overflow-hidden flex flex-col h-[80vh]">
-               {/* Header */}
-               <div className="p-8 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
-                  <div className="flex items-center gap-4">
-                     <div className="w-12 h-12 bg-nyra-primary/10 rounded-2xl flex items-center justify-center border border-nyra-primary/30">
-                        <Sparkles className="text-nyra-primary" size={24} />
-                     </div>
-                     <div>
-                        <h3 className="text-xl font-bold">Neural Session: Nyra Intelligence</h3>
-                        <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] mt-1">Syllabus Sync Active</p>
-                     </div>
-                  </div>
-                  <button 
-                     onClick={() => { stopReview(); setIsReviewingWithNyra(false); }}
-                     className="p-3 hover:bg-rose-500/20 text-slate-500 hover:text-rose-500 rounded-2xl transition-all"
-                  >
-                     <X size={24} />
-                  </button>
-               </div>
+  <AnimatePresence>
+    {isReviewingWithNyra && (
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-[100] flex items-center justify-center p-6 bg-nyra-dark/95 backdrop-blur-2xl"
+      >
+        <div className="w-full max-w-4xl bg-slate-900 border border-white/10 rounded-[3rem] shadow-2xl overflow-hidden flex flex-col h-[80vh]">
+           {/* Header */}
+           <div className="p-8 border-b border-white/5 flex items-center justify-between bg-white/[0.02]">
+              <div className="flex items-center gap-4">
+                 <div className="w-12 h-12 bg-nyra-primary/10 rounded-2xl flex items-center justify-center border border-nyra-primary/30">
+                    <Sparkles className="text-nyra-primary" size={24} />
+                 </div>
+                 <div>
+                    <h3 className="text-xl font-bold">Neural Session: Nyra Intelligence</h3>
+                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-[0.2em] mt-1">Syllabus Sync Active</p>
+                 </div>
+              </div>
+              <button 
+                 onClick={() => { stopReview(); setIsReviewingWithNyra(false); }}
+                 className="p-3 hover:bg-rose-500/20 text-slate-500 hover:text-rose-500 rounded-2xl transition-all"
+              >
+                 <X size={24} />
+              </button>
+           </div>
 
-               {/* Review Body */}
-               <div className="flex-1 overflow-y-auto p-12 flex flex-col items-center justify-center text-center space-y-8">
-                  <div className="relative">
-                     <div className="w-32 h-32 bg-nyra-primary/5 rounded-[3rem] flex items-center justify-center relative z-10">
-                        <Brain className="text-nyra-primary animate-pulse" size={48} />
-                     </div>
-                     <div className="absolute inset-0 bg-nyra-primary blur-3xl opacity-20 animate-pulse" />
-                  </div>
-                  
-                  <div className="space-y-4 max-w-lg">
-                     <h4 className="text-2xl font-display font-bold italic">"Let me bridge the gaps in your knowledge..."</h4>
-                     <p className="text-slate-400 text-sm leading-relaxed">
-                        Nyra is analyzing your streak, your recent DPP submissions, and your mastery index. 
-                        Stay focused. Listen closely to the remedial plan.
-                     </p>
-                  </div>
+           {/* Review Body */}
+           <div className="flex-1 overflow-y-auto p-12 flex flex-col items-center justify-center text-center space-y-8">
+              <div className="relative">
+                 <div className="w-32 h-32 bg-nyra-primary/5 rounded-[3rem] flex items-center justify-center relative z-10">
+                    <Brain className="text-nyra-primary animate-pulse" size={48} />
+                 </div>
+                 <div className="absolute inset-0 bg-nyra-primary blur-3xl opacity-20 animate-pulse" />
+              </div>
+              
+              <div className="space-y-4 max-w-lg">
+                 <h4 className="text-2xl font-display font-bold italic">"Let me bridge the gaps in your knowledge..."</h4>
+                 <p className="text-slate-400 text-sm leading-relaxed">
+                    Nyra is analyzing your streak, your recent DPP submissions, and your mastery index. 
+                    Stay focused. Listen closely to the remedial plan.
+                 </p>
+              </div>
 
-                  <div className="flex flex-col gap-3 w-full max-w-md">
-                     {reviewMessages.slice(-3).map((m, i) => (
-                        <div key={i} className={`p-4 rounded-2xl text-left text-xs font-bold leading-relaxed ${
-                           m.role === 'user' ? 'bg-white/5 text-slate-400 ml-8 border border-white/5' : 'bg-nyra-primary/10 text-nyra-primary mr-8 border border-nyra-primary/20'
-                        }`}>
-                           {m.text}
-                        </div>
-                     ))}
-                  </div>
+              <div className="flex flex-col gap-3 w-full max-w-md">
+                 {reviewMessages.slice(-3).map((m, i) => (
+                    <div key={i} className={`p-4 rounded-2xl text-left text-xs font-bold leading-relaxed ${
+                       m.role === 'user' ? 'bg-white/5 text-slate-400 ml-8 border border-white/5' : 'bg-nyra-primary/10 text-nyra-primary mr-8 border border-nyra-primary/20'
+                    }`}>
+                       {m.text}
+                    </div>
+                 ))}
+              </div>
 
-                  <div className="flex items-center gap-6 pt-8">
-                     <button 
-                       onClick={() => startReview()}
-                       className="px-10 py-5 bg-nyra-primary text-white rounded-3xl font-black text-sm uppercase tracking-widest hover:bg-nyra-primary/90 transition-all shadow-2xl shadow-nyra-primary/40 flex items-center gap-3 active:scale-95"
-                     >
-                       <Zap size={20} />
-                       Ignite Analysis
-                     </button>
-                     <div className="flex items-center gap-3">
-                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Neural Link Ready</span>
-                     </div>
-                  </div>
-               </div>
+              <div className="flex items-center gap-6 pt-8">
+                 <button 
+                   onClick={() => startReview()}
+                   className="px-10 py-5 bg-nyra-primary text-white rounded-3xl font-black text-sm uppercase tracking-widest hover:bg-nyra-primary/90 transition-all shadow-2xl shadow-nyra-primary/40 flex items-center gap-3 active:scale-95"
+                 >
+                   <Zap size={20} />
+                   Ignite Analysis
+                 </button>
+                 <div className="flex items-center gap-3">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                    <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Neural Link Ready</span>
+                 </div>
+              </div>
+           </div>
 
-               {/* Footer Info */}
-               <div className="p-6 bg-white/[0.01] border-t border-white/5 text-center">
-                  <p className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">Powered by Gemini 3.1 Neural Engine • Voice Interaction Enabled</p>
-               </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  </div>
+           {/* Footer Info */}
+           <div className="p-6 bg-white/[0.01] border-t border-white/5 text-center">
+              <p className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">Powered by Gemini 3.1 Neural Engine • Voice Interaction Enabled</p>
+           </div>
+        </div>
+      </motion.div>
+    )}
+  </AnimatePresence>
+</div>
+</div>
 );
 };
 

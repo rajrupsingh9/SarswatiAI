@@ -132,9 +132,20 @@ export interface TestSubmission {
 
 export interface PerformanceMetrics {
   eri: number;
-  heatMap: { [topic: string]: 'weak' | 'average' | 'strong' };
-  memoryDecay: { [topic: string]: string }; // topic: last active date
-  readinessIndex: number;
+  readinessScore?: number;
+  readinessIndex?: number; // Alias for backward compatibility
+  recommendations?: string[]; // Backward compatibility
+  decayAlerts?: string[]; // Backward compatibility
+  heatMap: { [topicId: string]: { mastery: number; intensity: number } | 'strong' | 'average' | 'weak' | any };
+  memoryDecay: { [topicId: string]: { strength: number; lastReviewed: string; decayAlert: boolean } | string | any };
+  efficiencyGrid?: { 
+    id: string; 
+    topic: string; 
+    speed: number; 
+    accuracy: number; 
+    zone: 'Rush' | 'Optimal' | 'Slow' | 'Struggling';
+    timestamp: string;
+  }[];
   lastAnalyzed: string;
 }
 
@@ -161,24 +172,34 @@ export interface UserProfile {
     subjectId?: string;
   }[];
   intelligenceProfile?: {
-    calculationAbility: number; // 0-100
-    thinkingAbility: number;    // 0-100
-    conceptualStrength: number; // 0-100
-    reasoningAbility: number;   // 0-100
-    speedAccuracyBalance: number; // 0-100
-    learningPersistence: number; // 0-100
-    knowledgeDepth: { [subjectId: string]: number }; // 0-100
-    cognitiveStyle: 'Intuitive' | 'Analytical' | 'Visual' | 'Procedural' | 'Balanced';
-    lastUpdated: string;
+    calculationAbility?: number; // 0-100
+    thinkingAbility?: number;   // Backward compatibility
+    conceptualStrength?: number; // 0-100
+    reasoningPower?: number;    // 0-100
+    reasoningAbility?: number;  // Backward compatibility
+    memoryRetention?: number;   // 0-100
+    learningPersistence?: number; // 0-100
+    thinkingStyle?: 'Visual' | 'Analytical' | 'Intuitive' | 'Practical' | 'Logical';
+    cognitiveStyle?: string;     // Backward compatibility
+    speedAccuracyBalance?: number; // Backward compatibility
+    knowledgeDepth?: any;        // Backward compatibility
+    eri?: number; // Excellence Readiness Index
+    lastUpdated?: string;
   };
   progress?: {
     streak: number;
     lastActive: string;
     totalStudyTime: number; // in minutes
-    badges: { id: string; name: string; icon: string; date: string }[];
+    badges: { id: string; name: string; icon: string; date: string; description: string }[];
     topicMastery: { [topicId: string]: 'Mastered' | 'Learning' | 'Needs Focus' | 'New' };
     selfAssessments: { [topicId: string]: number }; // 1-5 stars
     dailyActivity: { date: string; minutes: number }[];
     difficultTopics: string[]; // topic IDs
+    mistakeCategories?: {
+      conceptual: number;
+      calculation: number;
+      careless: number;
+      timing: number;
+    };
   };
 }

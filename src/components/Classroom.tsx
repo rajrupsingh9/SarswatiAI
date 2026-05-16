@@ -8,7 +8,7 @@ import {
   TestTube, Boxes, Undo, Redo, LayoutDashboard, BookOpen, ShieldAlert, Target, Bell, Calendar
 } from 'lucide-react';
 import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, limit } from 'firebase/firestore';
-import { db, handleFirestoreError, OperationType } from '../lib/firebase';
+import { db, auth, handleFirestoreError, OperationType } from '../lib/firebase';
 import { chatWithNyra, drawHighlight, drawPen, drawText, drawArrow, drawShape, drawBracket, drawTick, toggleWhiteboard, clearWhiteboard, postToChat, open3DLab, drawNeuralMap, generatePracticeProblem } from '../lib/gemini';
 import { useLiveAPI } from '../hooks/useLiveAPI';
 import confetti from 'canvas-confetti';
@@ -1032,7 +1032,7 @@ You have access to the document they uploaded earlier. Use your vision and text 
           role: 'user',
           content: input,
           timestamp: serverTimestamp(),
-          senderId: userId
+          senderId: auth.currentUser?.uid || userId
         }).catch(err => handleFirestoreError(err, OperationType.CREATE, messagesRef.path));
       } catch (err) {
         console.error("Firestore save error (user)", err);
