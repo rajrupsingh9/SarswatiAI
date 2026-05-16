@@ -31,11 +31,19 @@ export function useLiveAPI({
   const micStreamRef = useRef<MediaStream | null>(null);
   const processorRef = useRef<ScriptProcessorNode | null>(null);
 
+  const audioNodesRef = useRef<AudioBufferSourceNode[]>([]);
+
   const stop = useCallback(() => {
     setIsActive(false);
     setIsConnecting(false);
     setError(null);
     
+    // Stop all audio nodes
+    audioNodesRef.current.forEach(node => {
+      try { node.stop(); } catch (e) {}
+    });
+    audioNodesRef.current = [];
+
     if (activeSessionRef.current) {
       activeSessionRef.current.close();
       activeSessionRef.current = null;
@@ -56,12 +64,12 @@ export function useLiveAPI({
     }
 
     if (audioContextRef.current) {
-      audioContextRef.current.close();
+      audioContextRef.current.close().catch(() => {});
       audioContextRef.current = null;
     }
 
     if (playbackContextRef.current) {
-      playbackContextRef.current.close();
+      playbackContextRef.current.close().catch(() => {});
       playbackContextRef.current = null;
     }
     
@@ -77,13 +85,25 @@ export function useLiveAPI({
   }, []);
 
   const handleInterruption = useCallback(() => {
+    console.log("Processing Interruption: Clearing playback queue...");
+    
+    // 1. Stop all pending audio nodes IMMEDIATELY
+    audioNodesRef.current.forEach(node => {
+      try { node.stop(); } catch (e) {}
+    });
+    audioNodesRef.current = [];
+
+    // 2. Reset playback clock
+    nextPlaybackTimeRef.current = 0;
+
+    // 3. Optional: Re-initialize context if needed for hardware-level flush
     if (playbackContextRef.current) {
-      // Create a fresh context or just suspend/resume to clear?
-      // In Web Audio, the best way to "stop" all scheduled buffers is to suspend or just stop the nodes.
-      // But we are scheduling many buffers.
-      playbackContextRef.current.close().then(() => {
-        playbackContextRef.current = new AudioContext({ sampleRate: 24000 });
-        nextPlaybackTimeRef.current = 0;
+      const oldContext = playbackContextRef.current;
+      oldContext.close().then(() => {
+        const newContext = new AudioContext({ sampleRate: 24000 });
+        playbackContextRef.current = newContext;
+      }).catch(err => {
+        console.warn("Error during audio context re-init on interruption:", err);
       });
     }
   }, []);
@@ -120,6 +140,8 @@ export function useLiveAPI({
       });
       
       const modelName = model; 
+      const fullModelName = modelName.startsWith('models/') ? modelName : `models/${modelName}`;
+      console.log("Full model name for Live connect:", fullModelName);
       
       // 1. Setup Microphone
       console.log("Starting Nyra Live session...");
@@ -166,6 +188,7 @@ export function useLiveAPI({
       console.log("Microphone access granted.");
 
       const audioContext = new AudioContext({ sampleRate: 16000 });
+      if (audioContext.state === 'suspended') await audioContext.resume();
       audioContextRef.current = audioContext;
       
       const source = audioContext.createMediaStreamSource(stream);
@@ -174,13 +197,14 @@ export function useLiveAPI({
 
       // 2. Setup Playback
       const playbackContext = new AudioContext({ sampleRate: 24000 });
+      if (playbackContext.state === 'suspended') await playbackContext.resume();
       playbackContextRef.current = playbackContext;
 
       // 3. Connect to Gemini Live
-      console.log("Connecting to Gemini Live WebSocket...");
+      console.log("Connecting to Gemini Live WebSocket with model:", fullModelName);
       // @ts-ignore - live is a experimental feature
       const sessionPromise = ai.live.connect({
-        model: modelName,
+        model: fullModelName,
         config: {
           responseModalities: [Modality.AUDIO],
           speechConfig: {
@@ -214,9 +238,25 @@ export function useLiveAPI({
             processor.connect(audioContext.destination);
           },
           onmessage: async (message: LiveServerMessage) => {
-            // Log for debugging (usually hidden but useful in dev)
+            // Log for debugging
+            console.log("Nyra received Live Message:", message);
+
             if (message.toolCall) {
               console.log("Live Tool Call detected (top-level):", message.toolCall);
+            }
+
+            // Handle User Transcription (if enabled in config)
+            // @ts-ignore - some versions of the SDK might have this field
+            const userParts = (message.serverContent as any)?.userTurn?.parts;
+            if (userParts) {
+              const userText = userParts.filter((p: any) => p.text).map((p: any) => p.text).join("");
+              if (userText && onMessage) {
+                // We use a specific prefix or handle differently if needed, 
+                // but usually, we just want to save it as a 'user' message.
+                // In this app, we'll notify the component.
+                console.log("Detected user transcription:", userText);
+                // We could pass a role to onMessage, but for now we'll just log and see.
+              }
             }
 
             // Handle Interruption
@@ -247,21 +287,16 @@ export function useLiveAPI({
                 const startTime = Math.max(playbackContextRef.current.currentTime, nextPlaybackTimeRef.current);
                 sourceNode.start(startTime);
                 nextPlaybackTimeRef.current = startTime + buffer.duration;
+
+                // Add to tracker for interruption
+                audioNodesRef.current.push(sourceNode);
+                sourceNode.onended = () => {
+                  audioNodesRef.current = audioNodesRef.current.filter(n => n !== sourceNode);
+                };
               }
 
               // Handle Text Output (from modalities or transcription)
-              let combinedText = "";
-              
-              if (parts) {
-                combinedText = parts.filter(p => p.text).map(p => p.text).join("");
-              }
-
-              // Check for model output transcription
-              // @ts-ignore - transcription field might exist in some versions
-              const transcription = message.serverContent?.modelTurn?.transcription;
-              if (transcription && !combinedText) {
-                combinedText = transcription;
-              }
+              const combinedText = parts.filter(p => p.text).map(p => p.text).join("");
 
               if (combinedText && onMessage) {
                 onMessage(combinedText);
@@ -274,23 +309,16 @@ export function useLiveAPI({
                 onToolCall(calls);
                 
                 if (activeSessionRef.current) {
-                  // Use sendToolResponse if available, fallback to sendRealtimeInput
+                  const functionResponses = calls.map(c => ({
+                    name: c.name,
+                    id: c.id,
+                    response: { output: { success: true } }
+                  }));
+
                   if (typeof activeSessionRef.current.sendToolResponse === 'function') {
-                    activeSessionRef.current.sendToolResponse({
-                      functionResponses: calls.map(c => ({
-                        name: c.name,
-                        id: c.id,
-                        response: { output: { success: true } }
-                      }))
-                    });
+                    activeSessionRef.current.sendToolResponse({ functionResponses });
                   } else {
-                    activeSessionRef.current.sendRealtimeInput(calls.map(c => ({
-                      functionResponse: {
-                        name: c.name,
-                        id: c.id,
-                        response: { output: { success: true } }
-                      }
-                    })));
+                    activeSessionRef.current.sendRealtimeInput(functionResponses.map(r => ({ functionResponse: r })));
                   }
                 }
               }

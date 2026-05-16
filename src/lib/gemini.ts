@@ -1,4 +1,4 @@
-import { GoogleGenAI, Type, FunctionDeclaration, ThinkingLevel } from "@google/genai";
+import { GoogleGenAI, Type, FunctionDeclaration } from "@google/genai";
 
 const NYRA_SYSTEM_INSTRUCTION = `
 Name: NYRA
@@ -318,8 +318,7 @@ export async function chatWithNyra(
           drawNeuralMap, generatePracticeProblem,
           drawHighlight, drawPen, drawArrow, drawShape, drawBracket, drawTick, drawText
         ] 
-      }],
-      thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH }
+      }]
     }
   });
 

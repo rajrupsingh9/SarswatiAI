@@ -1543,16 +1543,25 @@ You have access to the document they uploaded earlier. Use your vision and text 
                                key={msg.id} 
                                className={`flex flex-col ${msg.role === 'nyra' ? 'items-start' : 'items-end'}`}
                              >
-                                <div className={`max-w-[90%] rounded-2xl p-3 shadow-sm text-sm ${
-                                  msg.role === 'nyra' 
-                                    ? 'bg-nyra-primary/5 border border-nyra-primary/10 text-slate-700' 
-                                    : 'bg-white border border-slate-200 text-slate-600'
-                                }`}>
-                                   <p className="leading-relaxed whitespace-pre-wrap">{msg.text}</p>
-                                   <div className="mt-1 text-[8px] opacity-30 font-mono text-right">
-                                      {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                   </div>
-                                </div>
+                                 <div className={`max-w-[90%] rounded-2xl p-3 shadow-md text-sm relative overflow-hidden transition-all hover:scale-[1.02] ${
+                                   msg.role === 'nyra' 
+                                     ? msg.text.length % 4 === 0 
+                                       ? 'bg-nyra-primary/5 border-l-4 border-l-nyra-primary border-t border-r border-b border-nyra-primary/10 text-slate-700' 
+                                       : msg.text.length % 3 === 0
+                                         ? 'bg-emerald-500/5 border-l-4 border-l-emerald-500 border-t border-r border-b border-emerald-500/10 text-slate-700'
+                                         : msg.text.length % 2 === 0
+                                           ? 'bg-amber-500/5 border-l-4 border-l-amber-500 border-t border-r border-b border-amber-500/10 text-slate-700'
+                                           : 'bg-rose-500/5 border-l-4 border-l-rose-500 border-t border-r border-b border-rose-500/10 text-slate-700'
+                                     : 'bg-white border border-slate-200 text-slate-600'
+                                 }`}>
+                                    <div className="absolute inset-0 opacity-[0.02] pointer-events-none">
+                                       <div className="absolute inset-0 bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:8px_8px]" />
+                                    </div>
+                                    <p className="leading-relaxed whitespace-pre-wrap relative z-10 font-medium">{msg.text}</p>
+                                    <div className="mt-1 text-[8px] opacity-30 font-mono text-right relative z-10">
+                                       {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </div>
+                                 </div>
                              </motion.div>
                            ))
                         )}
@@ -1609,12 +1618,20 @@ You have access to the document they uploaded earlier. Use your vision and text 
                 <span className="text-xs font-black uppercase tracking-widest opacity-70">Connection Error</span>
                 <p className="text-sm font-bold">{liveError}</p>
               </div>
-              <button 
-                onClick={stopLive}
-                className="ml-4 p-2 hover:bg-white/20 rounded-xl transition-colors"
-              >
-                <X size={18} />
-              </button>
+              <div className="flex items-center gap-2 ml-4">
+                <button 
+                  onClick={() => { stopLive(); setTimeout(startLive, 300); }}
+                  className="px-4 py-2 bg-white text-rose-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-rose-50 transition-all shadow-lg active:scale-95"
+                >
+                  Retry Link
+                </button>
+                <button 
+                  onClick={stopLive}
+                  className="p-2 hover:bg-white/20 rounded-xl transition-colors"
+                >
+                  <X size={18} />
+                </button>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>

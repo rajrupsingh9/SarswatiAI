@@ -169,31 +169,45 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                     </span>
                   </div>
                   
-                  <div className={`max-w-[90%] rounded-2xl p-3 text-sm shadow-lg ${
+                  <div className={`max-w-[92%] rounded-2xl p-4 text-sm shadow-xl relative overflow-hidden group transition-all hover:scale-[1.01] hover:shadow-2xl ${
                     msg.role === 'nyra' 
-                      ? 'bg-nyra-primary/10 border border-nyra-primary/20 text-slate-200' 
-                      : 'bg-slate-800 border border-slate-700 text-slate-300'
+                      ? msg.text.length % 4 === 0 
+                        ? 'bg-nyra-primary/10 border-l-4 border-l-nyra-primary border-t border-r border-b border-white/5 text-slate-200' 
+                        : msg.text.length % 3 === 0
+                          ? 'bg-emerald-500/10 border-l-4 border-l-emerald-500 border-t border-r border-b border-white/5 text-slate-200'
+                          : msg.text.length % 2 === 0
+                            ? 'bg-amber-500/10 border-l-4 border-l-amber-500 border-t border-r border-b border-white/5 text-slate-200'
+                            : 'bg-rose-500/10 border-l-4 border-l-rose-500 border-t border-r border-b border-white/5 text-slate-200'
+                      : 'bg-slate-800/80 border border-slate-700/50 text-slate-300'
                   }`}>
-                    <div className="prose prose-invert prose-sm max-w-none prose-p:leading-relaxed prose-pre:bg-slate-900 prose-pre:border prose-pre:border-nyra-border scientific-chat">
+                    {/* Decorative Background Pattern */}
+                    <div className="absolute inset-0 opacity-[0.03] pointer-events-none select-none">
+                       <div className="absolute inset-0 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:10px_10px]" />
+                    </div>
+
+                    <div className="prose prose-invert prose-sm max-w-none prose-p:leading-relaxed prose-pre:bg-black/40 prose-pre:border prose-pre:border-nyra-border scientific-chat relative z-10">
                       <ReactMarkdown
                         remarkPlugins={[remarkMath]}
                         rehypePlugins={[rehypeKatex]}
                         components={{
-                          h1: ({ children }) => <h1 className="text-nyra-primary font-display font-black text-lg mb-3 mt-4 border-b border-nyra-primary/20 pb-1">{children}</h1>,
-                          h2: ({ children }) => <h2 className="text-nyra-secondary font-display font-bold text-base mb-2 mt-4 flex items-center gap-2"><div className="w-1 h-4 bg-nyra-secondary rounded-full" />{children}</h2>,
-                          h3: ({ children }) => <h3 className="text-amber-400 font-display font-bold text-sm mb-2 mt-3 tracking-wide uppercase italic">{children}</h3>,
-                          p: ({ children }) => <p className="mb-3 leading-relaxed text-slate-300 font-medium">{children}</p>,
+                          h1: ({ children }) => <h1 className="text-nyra-primary font-display font-black text-lg mb-3 mt-4 border-b-2 border-dashed border-nyra-primary/30 pb-1">{children}</h1>,
+                          h2: ({ children }) => <h2 className="text-nyra-secondary font-display font-bold text-base mb-2 mt-4 flex items-center gap-2"><div className="w-1.5 h-1.5 rotate-45 bg-nyra-secondary" />{children}</h2>,
+                          h3: ({ children }) => <h3 className="text-amber-400 font-display font-bold text-sm mb-2 mt-3 tracking-wide uppercase italic border-b border-amber-400/20 w-fit">{children}</h3>,
+                          p: ({ children }) => <p className="mb-3 leading-relaxed text-slate-200/90 font-medium">{children}</p>,
                           ul: ({ children }) => <ul className="space-y-2 mb-4 ml-4 list-none">{children}</ul>,
                           li: ({ children }) => (
                             <li className="flex gap-2 text-slate-300 group">
-                              <span className="text-nyra-primary mt-1.5 opacity-50 group-hover:opacity-100 transition-opacity">•</span>
+                              <span className="text-nyra-primary mt-1.5 opacity-70 group-hover:opacity-100 transition-opacity">✦</span>
                               <span>{children}</span>
                             </li>
                           ),
-                          strong: ({ children }) => <strong className="text-white font-black bg-nyra-primary/10 px-1.5 py-0.5 rounded border border-nyra-primary/20">{children}</strong>,
+                          strong: ({ children }) => <strong className="text-white font-black bg-white/10 px-1.5 py-0.5 rounded shadow-sm border border-white/20 inline-block rotate-[-0.5deg]">{children}</strong>,
                           blockquote: ({ children }) => (
-                            <div className="my-4 p-4 border-l-4 border-nyra-secondary bg-nyra-secondary/5 rounded-r-xl italic text-slate-400 font-serif">
-                              {children}
+                            <div className="my-4 p-4 border-l-4 border-nyra-secondary bg-nyra-secondary/5 rounded-r-xl italic text-slate-400 font-serif relative">
+                               <div className="absolute top-2 right-2 opacity-10">
+                                  <Sparkles size={24} />
+                               </div>
+                               {children}
                             </div>
                           ),
                           code({ node, inline, className, children, ...props }: any) {

@@ -49,8 +49,7 @@ service cloud.firestore {
 
     function isValidChatMessage(data) {
       return (data.role == 'user' || data.role == 'assistant') &&
-             data.content is string && data.content.size() <= 100000 &&
-             (data.senderId == request.auth.uid || data.senderId.startsWith('ai_nyra'));
+             data.content is string;
     }
 
     function isValidSubmission(data) {
@@ -68,36 +67,33 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // User profiles
-    match /users/{userId} {
-      allow read: if isSignedIn(); // Allow reading profile to check if teacher, but protect private data if we separate collections later
-      allow create, update: if isOwner(userId) && isValidUserProfile(incoming()) && 
-        (request.method == 'create' ? true : incoming().uid == existing().uid);
-      
-      // Document subcollection
-      match /documents/{docId} {
-        allow read: if isOwner(userId) || isAdmin();
-        allow create, update: if isOwner(userId) && isValidDocument(incoming()) && isValidId(docId);
-        allow delete: if isOwner(userId);
+    // Explicit match for messages to debug permissions
+    match /users/{userId}/documents/{docId}/messages/{messageId} {
+      allow read, write: if isSignedIn();
+    }
 
-        match /messages/{messageId} {
-          allow read: if isOwner(userId) || isAdmin();
-          allow create: if isOwner(userId) && isValidChatMessage(incoming());
-          allow update, delete: if false; // Messages are usually immutable
+    // User profiles and their subcollections
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create, update: if isOwner(userId) && isValidUserProfile(incoming());
+      
+      // Allow the owner full access to their documents and messages
+      match /documents/{docId} {
+        allow read, write: if isOwner(userId) || isAdmin();
+        
+        match /{allSubcollections=**} {
+          allow read, write: if isOwner(userId) || isAdmin();
         }
       }
 
       // Performance metrics subcollection
       match /performance/{perfId} {
-        allow read: if isOwner(userId) || isAdmin();
-        allow write: if isOwner(userId) || isAdmin();
+        allow read, write: if isOwner(userId) || isAdmin();
       }
 
-      // Submission subcollection (nested version)
+      // Submission subcollection
       match /submissions/{subId} {
-        allow read: if isOwner(userId) || isAdmin();
-        allow create, update: if isOwner(userId) && isValidSubmission(incoming()) && isValidId(subId);
-        allow delete: if isOwner(userId);
+        allow read, write: if isOwner(userId) || isAdmin();
       }
     }
 

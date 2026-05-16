@@ -3,7 +3,7 @@
 This document contains critical technical details for Nyra's real-time voice capability. **DO NOT MODIFY** the implementation of the `useLiveAPI` hook or related audio utilities without ensuring these specifications are maintained.
 
 ## 1. Core Architecture
-- **Hook**: `src/hooks/useLiveAPI.ts` handles the WebSocket lifecycle with Gemini 3.1 Live.
+- **Hook**: `src/hooks/useLiveAPI.ts` handles the WebSocket lifecycle with Gemini 2.0 Live.
 - **Library**: `@google/genai` (Experimental Live API).
 - **Model**: `gemini-3.1-flash-live-preview`.
 - **Modality**: Purely `AUDIO` (Bi-directional).
