@@ -48,8 +48,22 @@ CORE DIRECTIVE:
   4. Time Management: सवाल आता था पर टाइम कम पड़ गया। 
   - जब तुम फीडबैक दो, तो इन शब्दों का इस्तेमाल करो ताकि छात्र को पता चले कि उनकी "Weak Link" क्या है।
 - INFINITE MASTERY LOOP: Whenever a student masters a concept, use "generate_practice_problem" to create a fresh, unique numerical with randomized values. Keep them in a loop of practice until they are 'Crystal Clear'.
-- Native Vision: Use the provided document, whiteboard, or 3D Virtual Lab image to "see" exactly what the student is looking at. 
+- INTERACTIVE ENGAGEMENT (CRITICAL): 
+  - For students without a stylus, use "post_multiple_choice" to ask questions. Give them 2-4 clear options to click.
+  - Use "post_text_input_request" when you need a specific short answer, formula, or value.
+  - This ensures every student can interact, regardless of their hardware.
+- Native Vision: Use the provided document, whiteboard, 3D Virtual Lab image, or **student-uploaded photos/PDFs** to "see" exactly what the student is looking at or has worked on. If they upload a photo of their notebook, look for specific mistakes and guide them with your sassy intelligence.
 - 3D VIRTUAL LAB INTERACTION: When the student opens the 3D lab, you will see the simulation. Comment on the 3D models, explain the physics/chemistry live, and guide them in their exploration.
+- WHITEBOARD UPLOAD VALIDATION (STRICT CONTEXT CHECK):
+  - When a student uploads a photo/PDF to the Whiteboard, you MUST immediately verify if it matches the current Chapter/Topic/Slide we are discussing.
+  - If the document is about a different subject or an unrelated topic (e.g., student uploads Bio notes during a Physics class), you MUST refuse to discuss it.
+  - Sassy Refusal Style: "Arre Einstein, Physics ki class mein Biology ka tadka? No way! Pehle ye board saaf karo aur related content lao, verna Newton bura maan jayega." 
+  - Only engage with whiteboard uploads that are strictly relevant to the current lesson context.
+- PERSISTENT LEARNING LOG (THE MEMORY KEEPER):
+  - You have access to the student's entire learning history across sessions. 
+  - When you finish explaining a major concept or a topic, use "log_learning_milestone" to save a summary. This ensures you can reference it in the next class!
+  - Reference past lessons: "Yaad hai last time humne Pulleys ke baare mein kya discuss kiya tha? Aaj hum use advanced level par le jayenge."
+  - If a student asks "Humne ab tak kya padha?", summarize their journey using the history provided in the context.
 - Spatial Awareness: You are an expert at coordinate mapping. The document uses a normalized 0-1000 coordinate system (0,0 is top-left, 1000,1000 is bottom-right). When you draw, ensure your coordinates are surgically precise on the target pixels.
   - Underlining: Y should be about 10-15 units below the text base.
   - Arrows: The end point MUST be exactly on the target feature.
@@ -265,6 +279,37 @@ export const generatePracticeProblem: FunctionDeclaration = {
   },
 };
 
+export const postMultipleChoice: FunctionDeclaration = {
+  name: "post_multiple_choice",
+  parameters: {
+    type: Type.OBJECT,
+    description: "Post a multiple choice question with clickable options to the chat. Perfect for students without a stylus.",
+    properties: {
+      question: { type: Type.STRING, description: "The question text" },
+      options: { 
+        type: Type.ARRAY, 
+        items: { type: Type.STRING },
+        description: "List of 2-4 options"
+      },
+      correctOptionIndex: { type: Type.NUMBER, description: "Index of the correct option (0-based)" }
+    },
+    required: ["question", "options"],
+  },
+};
+
+export const postTextInputRequest: FunctionDeclaration = {
+  name: "post_text_input_request",
+  parameters: {
+    type: Type.OBJECT,
+    description: "Request the student to type a specific answer (like a numeric value or a chemical formula).",
+    properties: {
+      prompt: { type: Type.STRING, description: "Instruction to student (e.g., 'Enter the atomic weight of Carbon')" },
+      expectedAnswer: { type: Type.STRING, description: "Optional: The correct answer for validation" }
+    },
+    required: ["prompt"],
+  },
+};
+
 export const clearWhiteboard: FunctionDeclaration = {
   name: "clear_whiteboard",
   parameters: {
@@ -274,16 +319,45 @@ export const clearWhiteboard: FunctionDeclaration = {
   },
 };
 
+export const logLearningMilestone: FunctionDeclaration = {
+  name: "log_learning_milestone",
+  parameters: {
+    type: Type.OBJECT,
+    description: "Log a specific teaching milestone or summary of what was successfully taught in this session. This persists across sessions.",
+    properties: {
+      topicName: { type: Type.STRING, description: "The specific topic or sub-topic (e.g., 'Newton's First Law')" },
+      summary: { type: Type.STRING, description: "Brief summary of the discussion/explanation provided." },
+      keyConcepts: { type: Type.ARRAY, items: { type: Type.STRING }, description: "List of key terms or formulas defined." }
+    },
+    required: ["topicName", "summary"],
+  },
+};
+
 export const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
+export interface Attachment {
+  data: string; // Base64
+  mimeType: string;
+}
 
 export async function chatWithNyra(
   message: string,
-  imageContent: string | null, // base64
+  imageContent: string | null, // legacy snapshot support
   cursorPos?: { x: number; y: number },
-  history: any[] = []
+  history: any[] = [],
+  attachments: Attachment[] = [],
+  learningLogs: any[] = []
 ) {
   const parts: any[] = [{ text: message }];
   
+  if (learningLogs && learningLogs.length > 0) {
+    const logSummary = learningLogs.map(l => {
+      const date = l.timestamp?.toDate ? l.timestamp.toDate().toLocaleDateString() : 'Recently';
+      return `- [${date}] ${l.topicName || l.chapterName}: ${l.discussionSummary}`;
+    }).join('\n');
+    parts.push({ text: `[SYSTEM] STUDENT PERSISTENT MEMORY (Refer to this for cross-session continuity):\n${logSummary}` });
+  }
+
   if (imageContent) {
     parts.push({
       inlineData: {
@@ -292,6 +366,16 @@ export async function chatWithNyra(
       }
     });
   }
+
+  // Handle new multi-attachment system
+  attachments.forEach(attachment => {
+    parts.push({
+      inlineData: {
+        mimeType: attachment.mimeType,
+        data: attachment.data.includes(',') ? attachment.data.split(',')[1] : attachment.data
+      }
+    });
+  });
 
   if (cursorPos) {
     parts.push({ text: `[SYSTEM] User is currently pointing at normalized coordinates: x:${Math.round(cursorPos.x)}, y:${Math.round(cursorPos.y)} (0-1000 scale)` });
@@ -315,7 +399,8 @@ export async function chatWithNyra(
       tools: [{ 
         functionDeclarations: [
           toggleWhiteboard, open3DLab, postToChat, clearWhiteboard, 
-          drawNeuralMap, generatePracticeProblem,
+          drawNeuralMap, generatePracticeProblem, logLearningMilestone,
+          postMultipleChoice, postTextInputRequest,
           drawHighlight, drawPen, drawArrow, drawShape, drawBracket, drawTick, drawText
         ] 
       }]

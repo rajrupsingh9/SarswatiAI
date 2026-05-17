@@ -3,9 +3,10 @@ import { motion, AnimatePresence } from 'motion/react';
 import { 
   X, Maximize2, Minimize2, ZoomIn, ZoomOut, 
   Send, Sparkles, User, BrainCircuit, MousePointer2, Zap,
-  Mic, MicOff, Radio, Pencil, MousePointer, Eraser, MoveRight, Underline as UnderlineIcon, Square,
+  Mic, MicOff, Radio, Pencil, MousePointer, Eraser, MoveRight, Underline as UnderlineIcon, Square, Type, Check,
   Presentation, FileText, Ruler, Circle as CircleIcon, Compass, ChevronRight, ChevronLeft, Palette,
-  TestTube, Boxes, Undo, Redo, LayoutDashboard, BookOpen, ShieldAlert, Target, Bell, Calendar
+  TestTube, Boxes, Undo, Redo, LayoutDashboard, BookOpen, ShieldAlert, Target, Bell, Calendar,
+  Image as ImageIcon, Paperclip, FileImage
 } from 'lucide-react';
 import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, limit } from 'firebase/firestore';
 import { db, auth, handleFirestoreError, OperationType } from '../lib/firebase';
@@ -39,12 +40,15 @@ interface Message {
 }
 
 interface Annotation {
-  type: 'highlight' | 'pen' | 'arrow' | 'underline' | 'rect' | 'text' | 'circle' | 'bracket' | 'tick' | 'line' | 'protractor';
+  type: 'highlight' | 'pen' | 'arrow' | 'underline' | 'rect' | 'text' | 'circle' | 'bracket' | 'tick' | 'line' | 'protractor' | 'image';
   config: any;
   owner: 'user' | 'nyra';
 }
 
-type Tool = 'select' | 'pen' | 'arrow' | 'underline' | 'rect' | 'circle' | 'line' | 'protractor';
+type Tool = 'select' | 'pen' | 'arrow' | 'underline' | 'rect' | 'circle' | 'line' | 'protractor' | 'text' | 'image';
+
+const imageCache = new Map<string, HTMLImageElement>();
+const loadingImages = new Set<string>();
 
 interface RenderContext {
   ctx: CanvasRenderingContext2D;
@@ -174,6 +178,26 @@ const renderAnnotations = (
       ctx.beginPath();
       ctx.ellipse(cx + rx, cy + ry, rx, ry, 0, 0, Math.PI * 2);
       ctx.stroke();
+    } else if (ann.type === 'image') {
+      const img = imageCache.get(ann.config.url);
+      if (img) {
+        const x = (ann.config.x / 1000) * width;
+        const y = (ann.config.y / 1000) * height;
+        const w = (ann.config.width / 1000) * width;
+        const h = (ann.config.height / 1000) * height;
+        
+        // Draw image with rounded corners if needed or just straight
+        ctx.drawImage(img, x, y, w, h);
+      } else if (!loadingImages.has(ann.config.url)) {
+        loadingImages.add(ann.config.url);
+        const newImg = new Image();
+        newImg.crossOrigin = "anonymous";
+        newImg.src = ann.config.url;
+        newImg.onload = () => {
+          imageCache.set(ann.config.url, newImg);
+          loadingImages.delete(ann.config.url);
+        };
+      }
     } else if (ann.type === 'bracket') {
       const x = (ann.config.x / 1000) * width;
       const y = (ann.config.y / 1000) * height;
@@ -321,11 +345,13 @@ export default function Classroom({
   const [zoom, setZoom] = useState(1);
   const [messages, setMessages] = useState<Message[]>([]);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
+  const [learningLogs, setLearningLogs] = useState<any[]>([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isChatExpanded, setIsChatExpanded] = useState(false);
   const [isToolbarExpanded, setIsToolbarExpanded] = useState(true);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [whiteboardAnns, setWhiteboardAnns] = useState<Annotation[]>([]);
   const [whiteboardUndoStack, setWhiteboardUndoStack] = useState<Annotation[][]>([]);
@@ -336,6 +362,9 @@ export default function Classroom({
   const [currentTool, setCurrentTool] = useState<Tool>('select');
   const [currentColor, setCurrentColor] = useState('#33ccff');
   const [isDrawing, setIsDrawing] = useState(false);
+  const [whiteboardText, setWhiteboardText] = useState('');
+  const [showTextInput, setShowTextInput] = useState(false);
+  const [textPos, setTextPos] = useState({ x: 0, y: 0 });
   const [activePoints, setActivePoints] = useState<number[][]>([]);
   const immersiveZoneRef = useRef<HTMLDivElement>(null);
 
@@ -369,6 +398,17 @@ export default function Classroom({
 
     return () => unsubscribe();
   }, [docId, userId]);
+
+  useEffect(() => {
+    if (!userId) return;
+    const logsRef = collection(db, 'users', userId, 'learning_logs');
+    const q = query(logsRef, orderBy('timestamp', 'desc'), limit(15));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setLearningLogs(snapshot.docs.map(doc => doc.data()));
+    }, error => handleFirestoreError(error, OperationType.LIST, logsRef.path));
+    return () => unsubscribe();
+  }, [userId]);
+
   const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 }); // Normalized 0-1000
   const [hasMic, setHasMic] = useState<boolean | null>(null);
   const [isLabOpen, setIsLabOpen] = useState(false);
@@ -478,6 +518,23 @@ export default function Classroom({
         return;
       }
 
+      if (call.name === 'log_learning_milestone') {
+        const { topicName: milestoneTopic, summary, keyConcepts } = call.args;
+        if (userId) {
+          const logsRef = collection(db, 'users', userId, 'learning_logs');
+          addDoc(logsRef, {
+            subjectName: topicName || 'Subject',
+            chapterName: topicName || 'Chapter',
+            topicName: milestoneTopic,
+            discussionSummary: summary,
+            keyConcepts: keyConcepts || [],
+            timestamp: serverTimestamp(),
+            slideIndex: currentPage
+          }).catch(err => handleFirestoreError(err, OperationType.CREATE, logsRef.path));
+        }
+        return;
+      }
+
       if (call.name === 'generate_practice_problem') {
         const { topic, difficulty, problemText } = call.args;
         const fullProblemText = `### 🎯 Infinite Mastery: Practice Problem\n**Topic:** ${topic} | **Difficulty:** ${difficulty || 'Standard'}\n\n${problemText}`;
@@ -498,6 +555,41 @@ export default function Classroom({
           role: 'nyra',
           text: fullProblemText,
           timestamp: new Date()
+        }]);
+        return;
+      }
+
+      if (call.name === 'post_multiple_choice') {
+        const { question, options, correctOptionIndex } = call.args;
+        const msgId = 'mcq-' + Date.now();
+        setChatHistory(prev => [...prev, {
+          id: msgId,
+          role: 'nyra',
+          text: `Here's a quick question for you: ${question}`,
+          timestamp: new Date(),
+          interactive: {
+            type: 'mcq',
+            question,
+            options,
+            correctIndex: correctOptionIndex
+          }
+        }]);
+        return;
+      }
+
+      if (call.name === 'post_text_input_request') {
+        const { prompt, expectedAnswer } = call.args;
+        const msgId = 'text-input-' + Date.now();
+        setChatHistory(prev => [...prev, {
+          id: msgId,
+          role: 'nyra',
+          text: `I need you to type something for me:`,
+          timestamp: new Date(),
+          interactive: {
+            type: 'text-input',
+            prompt,
+            expected: expectedAnswer
+          }
         }]);
         return;
       }
@@ -688,7 +780,7 @@ ENGAGEMENT & PROTOCOLS:
 WHITEBOARD PROTOCOL (CRITICAL):
 तुम्हारे पास एक 'Whiteboard' है।
 - STUDENT DRAWINGS: छात्र बोर्ड पर क्या ड्रा कर रहा है या क्या लिख रहा है, उसे ध्यान से देखो। उनके काम पर चर्चा करो, गलतियाँ बताओ या उनकी तारीफ karo।
-- VISION: अपनी देखने की क्षमता (vision) का उपयोग डॉक्यूमेंट, व्हाइटबोर्ड ड्राइंग और 3D LAb तीनों को देखने के लिए करो।
+- VISION: अपनी देखने की क्षमता (vision) का उपयोग डॉक्यूमेंट, व्हाइटबोर्ड ड्राइंग, 3D Lab, और **छात्र द्वारा अपलोड की गई फोटो/PDF** को देखने के लिए करो। अगर छात्र ने अपनी कॉपी की फोटो भेजी है, तो उस पर चर्चा करो।
 - DRAWING RULES: 
   a) TEACHING MODE में ड्राइंग टूल्स का इस्तेमाल कम से कम करें।
   b) ASSIGNMENT CHECKING MODE में तुम 'draw_tick', 'draw_highlight', 'draw_pen' आदि का उपयोग छात्र की कॉपी पर रिव्यु देने के लिए कर सकती हो।
@@ -727,6 +819,7 @@ You have access to the document they uploaded earlier. Use your vision and text 
   });
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const whiteboardFileInputRef = useRef<HTMLInputElement>(null);
   // TEST_EDIT_SUCCESSFUL
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const whiteboardCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -747,8 +840,45 @@ You have access to the document they uploaded earlier. Use your vision and text 
 
   const handleMouseDown = () => {
     if (currentTool === 'select') return;
+    
+    if (currentTool === 'text') {
+      setTextPos({ x: cursorPos.x, y: cursorPos.y });
+      setShowTextInput(true);
+      return;
+    }
+
     setIsDrawing(true);
     setActivePoints([[cursorPos.x, cursorPos.y]]);
+  };
+
+  const placeText = () => {
+    if (!whiteboardText.trim()) {
+      setShowTextInput(false);
+      return;
+    }
+
+    const newAnn: Annotation = {
+      type: 'text',
+      config: {
+        x: textPos.x,
+        y: textPos.y,
+        text: whiteboardText,
+        color: currentColor,
+        size: 20
+      },
+      owner: 'user'
+    };
+
+    if (isWhiteboardOpen) {
+      setWhiteboardAnns(prev => [...prev, newAnn]);
+      setWhiteboardUndoStack(prev => [...prev, whiteboardAnns]);
+      setWhiteboardRedoStack([]);
+    } else {
+      setAnnotations(prev => [...prev, newAnn]);
+    }
+
+    setWhiteboardText('');
+    setShowTextInput(false);
   };
 
   const handleMouseUp = () => {
@@ -1017,12 +1147,45 @@ You have access to the document they uploaded earlier. Use your vision and text 
       return () => observer.disconnect();
     }
   }, [whiteboardAnns, activePoints, isWhiteboardOpen, currentTool]);
-  const handleSend = async () => {
-    if (!input.trim() || loading) return;
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
+  const handleInteractiveSubmit = async (msgId: string, response: string) => {
+    // 1. Update local UI state
+    setChatHistory(prev => prev.map(m => {
+      if (m.id === msgId && m.interactive) {
+        return {
+          ...m,
+          interactive: { ...m.interactive, submitted: true, userChoice: response }
+        };
+      }
+      return m;
+    }));
+
+    // 2. Send the response as a user message
+    setInput(`My answer is: ${response}`);
+    // Trigger handleSend immediately if possible, but handleSend uses current input state.
+    // Better to just call the core chat logic or set input and call handleSend in next tick.
+    // However, setInput is async. 
+  };
+
+  useEffect(() => {
+    // This effect acts as a trigger to send the message after setInput by handleInteractiveSubmit
+    if (input.startsWith('My answer is: ') && !loading) {
+       handleSend();
+    }
+  }, [input]);
+
+  const sendAutomatedMessage = async (text: string, attachment?: { data: string; mimeType: string }) => {
+    if (loading) return;
 
     const snapshot = await captureSnapshot();
-
-    const userMsg: Message = { role: 'user', parts: [{ text: input }] };
     
     // Save to Firestore
     if (docId && userId) {
@@ -1030,9 +1193,141 @@ You have access to the document they uploaded earlier. Use your vision and text 
       try {
         await addDoc(messagesRef, {
           role: 'user',
-          content: input,
+          content: text,
           timestamp: serverTimestamp(),
-          senderId: auth.currentUser?.uid || userId
+          senderId: auth.currentUser?.uid || userId,
+          hasAttachment: !!attachment
+        }).catch(err => handleFirestoreError(err, OperationType.CREATE, messagesRef.path));
+      } catch (err) {
+        console.error("Firestore save error (automated)", err);
+      }
+    }
+
+    setLoading(true);
+
+    try {
+      const response = await chatWithNyra(
+        text, 
+        snapshot, 
+        cursorPos, 
+        chatHistory.slice(-6), // Use chatHistory since it's the synced state
+        attachment ? [attachment] : [],
+        learningLogs
+      );
+
+      let modelText = "Look, science is hard, and I just crashed. Can we try that again?";
+      if (response && response.text) {
+        modelText = response.text;
+      }
+      
+      if (docId && userId) {
+        const messagesRef = collection(db, 'users', userId, 'documents', docId, 'messages');
+        try {
+          await addDoc(messagesRef, {
+            role: 'assistant',
+            content: modelText,
+            timestamp: serverTimestamp(),
+            senderId: 'ai_nyra'
+          }).catch(err => handleFirestoreError(err, OperationType.CREATE, messagesRef.path));
+        } catch (err) {
+          console.error("Firestore save error (ai automated)", err);
+        }
+      }
+
+      if (response.functionCalls) {
+        processFunctionCalls(response.functionCalls);
+      }
+
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleWhiteboardFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const base64 = await fileToBase64(file);
+      
+      const img = new Image();
+      img.src = base64;
+      img.onload = () => {
+        let w = img.width;
+        let h = img.height;
+        const maxDim = 800;
+
+        if (w > h) {
+          if (w > maxDim) {
+            h = (h * maxDim) / w;
+            w = maxDim;
+          }
+        } else {
+          if (h > maxDim) {
+            w = (w * maxDim) / h;
+            h = maxDim;
+          }
+        }
+
+        const newAnn: Annotation = {
+          type: 'image',
+          config: {
+            url: base64,
+            x: (1000 - w) / 2,
+            y: (1000 - h) / 2,
+            width: w,
+            height: h
+          },
+          owner: 'user'
+        };
+
+        setWhiteboardAnns(prev => [...prev, newAnn]);
+        setWhiteboardUndoStack(prev => [...prev, whiteboardAnns]);
+        setWhiteboardRedoStack([]);
+
+        // Phase 3: Trigger automated context validation by Nyra
+        const validationText = `Nyra, I just uploaded this to my whiteboard. Class: ${topicName || 'Current Session'}. Is this relevant? Check this notebook photo/document!`;
+        sendAutomatedMessage(validationText, { data: base64, mimeType: file.type });
+      };
+    } catch (err) {
+      console.error("Whiteboard upload failed", err);
+    }
+    
+    if (whiteboardFileInputRef.current) whiteboardFileInputRef.current.value = '';
+  };
+
+  const handleSend = async () => {
+    if ((!input.trim() && !selectedFile) || loading) return;
+
+    let attachment: any = null;
+    if (selectedFile) {
+      try {
+        const base64 = await fileToBase64(selectedFile);
+        attachment = {
+          data: base64,
+          mimeType: selectedFile.type
+        };
+      } catch (e) {
+        console.error("File conversion error:", e);
+      }
+    }
+
+    const snapshot = await captureSnapshot();
+
+    const textToSend = input.trim() || (selectedFile ? `Uploaded a ${selectedFile.type.split('/')[1]?.toUpperCase()} for analysis.` : "Analyze this.");
+    
+    // Save to Firestore
+    if (docId && userId) {
+      const messagesRef = collection(db, 'users', userId, 'documents', docId, 'messages');
+      try {
+        await addDoc(messagesRef, {
+          role: 'user',
+          content: textToSend,
+          timestamp: serverTimestamp(),
+          senderId: auth.currentUser?.uid || userId,
+          hasAttachment: !!attachment
         }).catch(err => handleFirestoreError(err, OperationType.CREATE, messagesRef.path));
       } catch (err) {
         console.error("Firestore save error (user)", err);
@@ -1040,23 +1335,23 @@ You have access to the document they uploaded earlier. Use your vision and text 
     }
 
     setInput('');
+    const lastFile = selectedFile;
+    setSelectedFile(null);
     setLoading(true);
 
     try {
       const response = await chatWithNyra(
-        input, 
+        textToSend, 
         snapshot, 
         cursorPos, 
-        messages.slice(-6)
+        messages.slice(-6),
+        attachment ? [attachment] : [],
+        learningLogs
       );
 
-      let modelText = "Nyra had a brain fart. Try again, sweetie.";
-      try {
-        if (response && response.text) {
-          modelText = response.text;
-        }
-      } catch (e) {
-        console.warn("Could not extract text from Gemini response", e);
+      let modelText = "Look, science is hard, and I just crashed. Can we try that again?";
+      if (response && response.text) {
+        modelText = response.text;
       }
       
       // Save AI response to Firestore
@@ -1298,6 +1593,7 @@ You have access to the document they uploaded earlier. Use your vision and text 
               { id: 'pen', icon: Pencil, label: 'Neural Pen' },
               { id: 'arrow', icon: MoveRight, label: 'Direction' },
               { id: 'rect', icon: Square, label: 'Focus Zone' },
+              { id: 'text', icon: Type, label: 'Type Insight' },
             ].map((t) => (
               <button 
                 key={t.id}
@@ -1473,6 +1769,46 @@ You have access to the document they uploaded earlier. Use your vision and text 
                     <div className="w-3 h-3 rounded-full bg-emerald-400" />
                     <span className="ml-4 text-xs font-bold text-slate-400 uppercase tracking-widest">Nyra's Whiteboard</span>
                   </div>
+                  
+                  {/* Floating Toolbar Integrated into Header Area */}
+                  <div className="flex items-center gap-1 bg-white border border-slate-200 p-1 rounded-2xl shadow-sm">
+                    <input 
+                      type="file" 
+                      ref={whiteboardFileInputRef} 
+                      className="hidden" 
+                      accept="image/*"
+                      onChange={handleWhiteboardFileUpload}
+                    />
+                    <button 
+                      onClick={() => whiteboardFileInputRef.current?.click()}
+                      className="p-2 text-slate-400 hover:text-nyra-primary hover:bg-nyra-primary/5 transition-all rounded-lg group relative"
+                      title="Upload to Board"
+                    >
+                      <ImageIcon size={18} />
+                    </button>
+                    <div className="w-px h-4 bg-slate-100 mx-1" />
+                    {[
+                      { id: 'select', icon: MousePointer, label: 'Hand' },
+                      { id: 'pen', icon: Pencil, label: 'Chalk' },
+                      { id: 'line', icon: Ruler, label: 'Edge' },
+                      { id: 'rect', icon: Square, label: 'Frame' },
+                      { id: 'circle', icon: CircleIcon, label: 'Orb' },
+                      { id: 'text', icon: Type, label: 'Sigil' },
+                    ].map((t) => (
+                      <button 
+                         key={t.id}
+                         onClick={() => setCurrentTool(t.id as Tool)}
+                         className={`p-2 rounded-lg transition-all group relative ${currentTool === t.id ? 'bg-nyra-primary text-white shadow-md' : 'text-slate-400 hover:text-slate-600 hover:bg-slate-100'}`}
+                         title={t.label}
+                      >
+                        <t.icon size={18} />
+                      </button>
+                    ))}
+                    <div className="w-px h-4 bg-slate-100 mx-1" />
+                    <button onClick={handleUndo} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg"><Undo size={18}/></button>
+                    <button onClick={handleRedo} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg"><Redo size={18}/></button>
+                  </div>
+
                   <div className="flex items-center gap-2">
                     <button 
                       onClick={() => setIsWhiteboardFullscreen(!isWhiteboardFullscreen)}
@@ -1516,6 +1852,47 @@ You have access to the document they uploaded earlier. Use your vision and text 
                       onMouseUp={handleMouseUp}
                       onMouseLeave={handleMouseUp}
                     />
+                    
+                    {/* Text Input Overlay */}
+                    <AnimatePresence>
+                      {showTextInput && (
+                         <motion.div
+                           initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                           animate={{ opacity: 1, scale: 1, y: 0 }}
+                           exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                           className="absolute z-[100] flex flex-col gap-2 p-2 bg-slate-900 border border-white/20 rounded-xl shadow-2xl"
+                           style={{ 
+                             left: `${(textPos.x / 1000) * 100}%`, 
+                             top: `${(textPos.y / 1000) * 100}%`,
+                             transform: 'translate(10px, 10px)'
+                           }}
+                         >
+                           <div className="flex items-center gap-2">
+                             <input 
+                               autoFocus
+                               type="text" 
+                               value={whiteboardText}
+                               onChange={(e) => setWhiteboardText(e.target.value)}
+                               onKeyDown={(e) => {
+                                 if (e.key === 'Enter') placeText();
+                                 if (e.key === 'Escape') setShowTextInput(false);
+                               }}
+                               placeholder="Type insight..."
+                               className="bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-nyra-primary w-48"
+                             />
+                             <button 
+                               onClick={placeText}
+                               className="p-2 bg-nyra-primary text-slate-900 rounded-lg hover:bg-nyra-primary/80 transition-colors"
+                             >
+                               <Check size={14} />
+                             </button>
+                           </div>
+                           <div className="flex justify-between items-center px-1">
+                             <span className="text-[8px] font-bold text-white/30 uppercase tracking-widest">Enter to Place • Esc to Cancel</span>
+                           </div>
+                         </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
 
                   {/* Internal Nyra Chat for Whiteboard - Integrated look */}
@@ -1645,7 +2022,10 @@ You have access to the document they uploaded earlier. Use your vision and text 
           input={input}
           setInput={setInput}
           onSendMessage={handleSend}
+          onInteractiveSubmit={handleInteractiveSubmit}
           loading={loading}
+          selectedFile={selectedFile}
+          setSelectedFile={setSelectedFile}
         />
 
         {/* 3D Virtual Lab */}

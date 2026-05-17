@@ -104,21 +104,32 @@ const StudentAnalytics: React.FC<StudentAnalyticsProps> = ({ profile, submission
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div className="space-y-6 md:space-y-8 animate-in fade-in duration-700 pb-20 md:pb-0">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 md:grid-cols-1 lg:gap-8">
         {/* ERI GAUGE & MASTER SUMMARY */}
-        <div className="lg:col-span-1 space-y-8">
-          <div className="p-8 bg-slate-900 border border-white/5 rounded-[3rem] text-center relative overflow-hidden group">
+        <div className="lg:col-span-1 space-y-6 md:space-y-8">
+          <div className="p-6 md:p-8 bg-slate-900 border border-white/5 rounded-[2.5rem] md:rounded-[3rem] text-center relative overflow-hidden group">
             <div className="absolute inset-0 bg-gradient-to-b from-nyra-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-700" />
             <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-4">Neural Readiness (ERI)</p>
             <div className="relative inline-block mb-6">
-                <svg className="w-48 h-48 rotate-[-90deg]">
-                    <circle cx="96" cy="96" r="80" fill="none" stroke="#1e293b" strokeWidth="12" />
+                <svg className="w-40 h-40 md:w-48 md:h-48 rotate-[-90deg]">
+                    <circle cx="80" cy="80" r="70" fill="none" stroke="#1e293b" strokeWidth="10" className="md:hidden" />
+                    <circle cx="96" cy="96" r="80" fill="none" stroke="#1e293b" strokeWidth="12" className="hidden md:block" />
+                    {/* Mobile Circle */}
+                    <circle 
+                        cx="80" cy="80" r="70" fill="none" stroke="url(#eriGradient)" strokeWidth="10" 
+                        strokeDasharray={2 * Math.PI * 70}
+                        strokeDashoffset={2 * Math.PI * 70 * (1 - analyticsData.eri / 100)}
+                        strokeLinecap="round"
+                        className="md:hidden"
+                    />
+                    {/* Desktop Circle */}
                     <circle 
                         cx="96" cy="96" r="80" fill="none" stroke="url(#eriGradient)" strokeWidth="12" 
                         strokeDasharray={2 * Math.PI * 80}
                         strokeDashoffset={2 * Math.PI * 80 * (1 - analyticsData.eri / 100)}
                         strokeLinecap="round"
+                        className="hidden md:block"
                     />
                     <defs>
                         <linearGradient id="eriGradient" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -128,7 +139,7 @@ const StudentAnalytics: React.FC<StudentAnalyticsProps> = ({ profile, submission
                     </defs>
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center translate-y-2">
-                    <span className="text-5xl font-black font-display text-white">{analyticsData.eri}</span>
+                    <span className="text-4xl md:text-5xl font-black font-display text-white">{analyticsData.eri}</span>
                     <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Sector Score</span>
                 </div>
             </div>
@@ -220,14 +231,14 @@ const StudentAnalytics: React.FC<StudentAnalyticsProps> = ({ profile, submission
                 </div>
             </div>
 
-            <div className="p-8 bg-slate-900 border border-white/5 rounded-[3rem] relative overflow-hidden">
-                <div className="flex items-center justify-between mb-8">
+            <div className="p-6 md:p-8 bg-slate-900 border border-white/5 rounded-[2.5rem] md:rounded-[3rem] relative overflow-hidden">
+                <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-2">
                   <h3 className="text-sm font-black text-slate-500 uppercase tracking-widest">Mistake Analysis</h3>
                   <PieChartIcon size={16} className="text-nyra-primary opacity-50" />
                 </div>
                 
                 {analyticsData.mistakePieData.length > 0 ? (
-                  <div className="flex flex-col md:flex-row items-center gap-8">
+                  <div className="flex flex-col items-center gap-8">
                     <div className="w-full h-40">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
@@ -250,12 +261,12 @@ const StudentAnalytics: React.FC<StudentAnalyticsProps> = ({ profile, submission
                             </PieChart>
                         </ResponsiveContainer>
                     </div>
-                    <div className="flex-1 grid grid-cols-2 gap-4">
+                    <div className="w-full grid grid-cols-2 gap-4">
                         {analyticsData.mistakePieData.map((item) => (
                           <div key={item.name} className="space-y-1">
                              <div className="flex items-center gap-2">
                                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
-                                <span className="text-[10px] font-bold text-slate-400 uppercase">{item.name}</span>
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{item.name}</span>
                              </div>
                              <p className="text-lg font-bold text-white pl-4">{item.value}</p>
                           </div>
@@ -270,36 +281,36 @@ const StudentAnalytics: React.FC<StudentAnalyticsProps> = ({ profile, submission
             </div>
           </div>
 
-          <div className="p-10 bg-slate-900 border border-white/5 rounded-[3.5rem]">
-             <div className="flex items-center justify-between mb-10">
+          <div className="p-6 md:p-10 bg-slate-900 border border-white/5 rounded-[2.5rem] md:rounded-[3.5rem]">
+             <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 md:mb-10 gap-6">
                 <div>
-                   <h3 className="text-xl font-bold">Neural Efficiency Grid</h3>
-                   <p className="text-xs text-slate-500">Mapping accuracy against response speed for optimal strategy</p>
+                   <h3 className="text-lg md:text-xl font-bold">Neural Efficiency Grid</h3>
+                   <p className="text-[10px] md:text-xs text-slate-500">Mapping accuracy against response speed</p>
                 </div>
                 <div className="flex gap-4">
-                    <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                    <div className="flex items-center gap-2 text-[8px] md:text-[10px] font-black text-slate-500 uppercase tracking-widest">
                         <div className="w-2 h-2 rounded-full bg-nyra-primary" /> Speed (X)
                     </div>
-                    <div className="flex items-center gap-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">
+                    <div className="flex items-center gap-2 text-[8px] md:text-[10px] font-black text-slate-500 uppercase tracking-widest">
                         <div className="w-2 h-2 rounded-full bg-emerald-500" /> Accuracy (Y)
                     </div>
                 </div>
              </div>
              
-             <div className="h-80 w-full">
+             <div className="h-64 md:h-80 w-full overflow-hidden">
                 <ResponsiveContainer width="100%" height="100%">
-                    <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                    <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 0 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#ffffff05" />
-                        <XAxis type="number" dataKey="speed" name="Speed" unit="%" stroke="#475569" fontSize={10} tickLine={false} />
-                        <YAxis type="number" dataKey="accuracy" name="Accuracy" unit="%" stroke="#475569" fontSize={10} tickLine={false} />
+                        <XAxis type="number" dataKey="speed" name="Speed" unit="%" stroke="#475569" fontSize={8} tickLine={false} />
+                        <YAxis type="number" dataKey="accuracy" name="Accuracy" unit="%" stroke="#475569" fontSize={8} tickLine={false} />
                         <ZAxis type="number" dataKey="marks" range={[60, 400]} />
-                        <Tooltip cursor={{ strokeDasharray: '3 3' }} contentStyle={{ backgroundColor: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }} />
+                        <Tooltip cursor={{ strokeDasharray: '3 3' }} contentStyle={{ backgroundColor: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px', fontSize: '10px' }} />
                         <Scatter name="Tests" data={analyticsData.scatterData} fill="#3b82f6" shape="circle" />
                     </ScatterChart>
                 </ResponsiveContainer>
              </div>
 
-             <div className="grid grid-cols-2 gap-8 mt-10 pt-10 border-t border-white/5">
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 mt-8 md:mt-10 pt-8 md:pt-10 border-t border-white/5">
                 <div className="p-6 bg-white/5 rounded-[2rem] border border-white/5">
                     <div className="flex items-center gap-3 text-nyra-primary mb-4">
                         <Zap size={20} />

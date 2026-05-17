@@ -384,12 +384,12 @@ EMOTIONAL TONE: Be encouraging but keep the sass. If they ask "How am I doing?",
   };
 
   return (
-    <div className={`min-h-screen bg-nyra-dark text-white flex flex-col md:flex-row relative overflow-hidden theme-${theme.accent}`}>
+    <div className={`min-h-screen bg-nyra-dark text-white flex flex-col md:flex-row relative overflow-hidden theme-${theme.accent} pb-20 md:pb-0`}>
       {/* Background Decor */}
       <div className={`absolute top-0 right-0 w-[50vw] h-[50vw] bg-${theme.primary}/5 blur-[120px] rounded-full -translate-y-1/2 translate-x-1/4 pointer-events-none`} />
       
-      {/* Sidebar Navigation */}
-      <aside className="w-full md:w-64 border-r border-white/5 flex flex-col z-[60] backdrop-blur-xl bg-black/20">
+      {/* Sidebar Navigation - Hidden on Mobile */}
+      <aside className="hidden md:flex w-64 border-r border-white/5 flex-col z-[60] backdrop-blur-xl bg-black/20">
         <div className="p-6 border-b border-white/5">
           <div className="flex items-center gap-3">
              <div className={`w-10 h-10 bg-${theme.primary}/20 rounded-xl flex items-center justify-center border border-${theme.primary}/30 shadow-lg shadow-${theme.primary}/20`}>
@@ -453,33 +453,54 @@ EMOTIONAL TONE: Be encouraging but keep the sass. If they ask "How am I doing?",
         </div>
       </aside>
 
+      {/* Mobile Bottom Navigation */}
+      <nav className="fixed bottom-0 left-0 right-0 h-16 bg-black/80 backdrop-blur-xl border-t border-white/10 flex md:hidden items-center justify-around z-[100] px-2 shadow-2xl">
+        {[
+          { id: 'study', label: labels.study, icon: BookOpen },
+          { id: 'hub', label: 'Hub', icon: Activity },
+          { id: 'flashcards', label: 'Cards', icon: Zap },
+          { id: 'exam-hall', label: 'Exams', icon: Target },
+          { id: 'profile', label: 'Me', icon: User }
+        ].map((nav) => (
+          <button 
+            key={nav.id}
+            onClick={() => nav.id === 'profile' ? onProfile() : setActiveTab(nav.id as any)}
+            className={`flex flex-col items-center gap-1 transition-all ${
+              activeTab === nav.id 
+              ? `text-${theme.primary}` 
+              : 'text-slate-500'
+            }`}
+          >
+            <nav.icon size={20} className={activeTab === nav.id ? `text-${theme.primary}` : 'text-slate-500'} />
+            <span className="text-[8px] font-black uppercase tracking-widest">{nav.label}</span>
+          </button>
+        ))}
+      </nav>
+
       <div className="flex-1 flex flex-col min-w-0">
         {/* Top bar for user context */}
-        <header className="h-20 border-b border-white/5 flex items-center justify-between px-10 backdrop-blur-md z-50">
+        <header className="h-16 md:h-20 border-b border-white/5 flex items-center justify-between px-4 md:px-10 backdrop-blur-md z-50">
           <div>
-             <h2 className="text-xl font-display font-bold">{activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</h2>
-             <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
-                {profile?.displayName} • {classes.find(c => c.id === (profile?.selectedClassId || selectedClassId))?.name || 'Classroom'} • {
-                  profile?.focusGoal === 'JEE' ? 'JEE Advanced' : 
-                  profile?.focusGoal === 'FOUNDATION' ? 'Foundation' : 'Academic Boards'
-                }
+             <h2 className="text-lg md:text-xl font-display font-bold">{activeTab.charAt(0).toUpperCase() + activeTab.slice(1)}</h2>
+             <p className="text-[8px] md:text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+                {profile?.displayName} • {classes.find(c => c.id === (profile?.selectedClassId || selectedClassId))?.name || 'Classroom'}
              </p>
           </div>
 
-          <div className="flex items-center gap-4">
-             <div className="flex items-center gap-3 px-4 py-2 bg-amber-500/5 border border-amber-500/10 rounded-full text-amber-500">
-               <Flame size={16} className="animate-pulse" />
-               <span className="font-display font-black text-xs uppercase tracking-widest">{profile?.progress?.streak || mockProgress.streak} Day Streak</span>
+          <div className="flex items-center gap-2 md:gap-4">
+             <div className="flex items-center gap-2 md:gap-3 px-3 md:px-4 py-1.5 md:py-2 bg-amber-500/5 border border-amber-500/10 rounded-full text-amber-500">
+               <Flame size={14} className="animate-pulse" />
+               <span className="font-display font-black text-[9px] md:text-xs uppercase tracking-widest">{profile?.progress?.streak || mockProgress.streak}d</span>
              </div>
              
-             <div className="p-10 w-px h-6 bg-white/10 hidden md:block" />
+             <div className="w-px h-6 bg-white/10 hidden md:block" />
              
              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-nyra-primary/10 border border-nyra-primary/20 flex items-center justify-center overflow-hidden">
+                <div className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-nyra-primary/10 border border-nyra-primary/20 flex items-center justify-center overflow-hidden">
                     {profile?.avatarUrl ? (
                       <img src={profile.avatarUrl} alt="Avatar" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                     ) : (
-                      <User size={20} className="text-nyra-primary" />
+                      <User className="w-4 h-4 md:w-5 md:h-5 text-nyra-primary" />
                     )}
                 </div>
               </div>
@@ -488,10 +509,10 @@ EMOTIONAL TONE: Be encouraging but keep the sass. If they ask "How am I doing?",
 
           <main className="flex-1 overflow-y-auto custom-scrollbar">
             {activeTab === 'study' ? (
-              <div className="flex h-full overflow-hidden">
-                {/* Left Sidebar: Syllabus Explorer */}
-                <aside className="w-80 flex flex-col bg-slate-900/30 border-r border-white/5 overflow-hidden">
-                  <div className="p-6 border-b border-white/5">
+              <div className="flex flex-col md:flex-row h-full overflow-hidden">
+                {/* Left Sidebar: Syllabus Explorer - Modified for Mobile Contextual View */}
+                <aside className={`${selectedSubjectId ? 'hidden md:flex' : 'flex'} w-full md:w-80 flex-col bg-slate-900/30 border-r border-white/5 overflow-hidden`}>
+                  <div className="p-4 md:p-6 border-b border-white/5">
                     <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Subjects</h3>
                   </div>
                   <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-2">
@@ -572,56 +593,58 @@ EMOTIONAL TONE: Be encouraging but keep the sass. If they ask "How am I doing?",
                 </aside>
 
                 {/* Main Content Area: Topic Explorer & Status */}
-                <section className="flex-1 overflow-y-auto custom-scrollbar bg-slate-950 p-10">
+                <section className={`${!selectedSubjectId ? 'hidden md:block' : 'block'} flex-1 overflow-y-auto custom-scrollbar bg-slate-950 p-4 md:p-10`}>
                    {!selectedSubjectId ? (
-                      <div className="h-full flex flex-col items-center justify-center text-center space-y-8 opacity-40">
-                         <div className="w-24 h-24 bg-white/5 rounded-[2.5rem] flex items-center justify-center border border-white/5 shadow-2xl">
-                            <Layers className="text-slate-400" size={48} strokeWidth={1} />
+                      <div className="h-full flex flex-col items-center justify-center text-center space-y-6 md:space-y-8 opacity-40 px-6">
+                         <div className="w-16 h-16 md:w-24 md:h-24 bg-white/5 rounded-[2rem] md:rounded-[2.5rem] flex items-center justify-center border border-white/5 shadow-2xl">
+                            <Layers className="text-slate-400 w-8 h-8 md:w-12 md:h-12" strokeWidth={1} />
                          </div>
                          <div className="space-y-2">
-                            <h3 className="text-xl font-bold text-white">Neural Curriculum Map</h3>
-                            <p className="text-xs text-slate-500 font-medium max-w-[240px] leading-relaxed">Select a subject from the left explorer to visualize your progression and units.</p>
+                            <h3 className="text-lg md:text-xl font-bold text-white">Neural Curriculum Map</h3>
+                            <p className="text-[10px] md:text-xs text-slate-500 font-medium max-w-[240px] leading-relaxed mx-auto">Select a subject to visualize your progression and units.</p>
                          </div>
                       </div>
                    ) : !selectedChapterId ? (
-                      <div className="space-y-12">
-                         <header className="flex items-end justify-between border-b border-white/5 pb-8">
+                      <div className="space-y-6 md:space-y-12">
+                         <header className="flex flex-col md:flex-row md:items-end justify-between border-b border-white/5 pb-6 md:pb-8">
                             <div className="space-y-2">
-                               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-nyra-primary">Curriculum Overview</p>
-                               <h2 className="text-5xl font-display font-black tracking-tighter text-white">{selectedSubject?.name}</h2>
+                               <button 
+                                 onClick={() => setSelectedSubjectId(null)}
+                                 className="md:hidden flex items-center gap-2 text-slate-500 mb-2"
+                               >
+                                 <ArrowLeft size={14} />
+                                 <span className="text-[10px] font-black uppercase tracking-widest">Back to Subjects</span>
+                               </button>
+                               <p className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.3em] text-nyra-primary">Curriculum Overview</p>
+                               <h2 className="text-3xl md:text-5xl font-display font-black tracking-tighter text-white leading-tight">{selectedSubject?.name}</h2>
                             </div>
-                            <div className="flex items-center gap-6">
-                               <div className="text-right">
-                                  <p className="text-[10px] font-black uppercase text-slate-500 tracking-widest">Mastery Index</p>
-                                  <p className="text-2xl font-black text-white">{getSubjectProgress(selectedSubject!)}%</p>
-                                </div>
-                                <div className="w-16 h-16 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
-                                   <Target className="text-nyra-primary" size={32} />
-                                </div>
+                            <div className="flex items-center gap-4 md:gap-6 mt-4 md:mt-0">
+                               <div className="text-left md:text-right">
+                                  <p className="text-[8px] md:text-[10px] font-black uppercase text-slate-500 tracking-widest">Mastery Index</p>
+                               </div>
                             </div>
                          </header>
-
-                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
                             {selectedSubject?.chapters.map((ch, idx) => (
                                <motion.button
                                  key={ch.id}
                                  whileHover={{ y: -8, scale: 1.02 }}
                                  onClick={() => setSelectedChapterId(ch.id)}
-                                 className="group p-8 rounded-[2.5rem] bg-white/[0.02] border border-white/5 hover:border-nyra-primary/30 transition-all text-left space-y-6"
+                                 className="group p-6 md:p-8 rounded-3xl md:rounded-[2.5rem] bg-white/[0.02] border border-white/5 hover:border-nyra-primary/30 transition-all text-left space-y-4 md:space-y-6"
                                >
                                   <div className="flex items-center justify-between">
-                                     <div className="w-12 h-12 rounded-2xl bg-nyra-primary/10 text-nyra-primary flex items-center justify-center font-black">
+                                     <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl md:rounded-2xl bg-nyra-primary/10 text-nyra-primary flex items-center justify-center font-black">
                                         {idx + 1}
                                      </div>
-                                     <div className="px-3 py-1 bg-white/5 rounded-full text-[9px] font-black uppercase text-slate-500 tracking-widest">
+                                     <div className="px-3 py-1 bg-white/5 rounded-full text-[8px] md:text-[9px] font-black uppercase text-slate-500 tracking-widest">
                                         {ch.topics.length} Topics
                                      </div>
                                   </div>
                                   <div>
-                                     <h4 className="text-xl font-bold text-white group-hover:text-nyra-primary transition-colors">{ch.name}</h4>
-                                     <p className="text-xs text-slate-500 mt-2 line-clamp-2">Unit breakdown and resource mapping for optimized learning flow.</p>
+                                     <h4 className="text-lg md:text-xl font-bold text-white group-hover:text-nyra-primary transition-colors">{ch.name}</h4>
+                                     <p className="text-[10px] md:text-xs text-slate-500 mt-2 line-clamp-2">Unit breakdown and resource mapping for optimized learning flow.</p>
                                   </div>
-                                  <div className="pt-4 border-t border-white/5 flex items-center justify-between text-[10px] font-black uppercase tracking-widest text-nyra-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <div className="pt-4 border-t border-white/5 flex items-center justify-between text-[8px] md:text-[10px] font-black uppercase tracking-widest text-nyra-primary opacity-0 md:group-hover:opacity-100 transition-opacity">
                                      <span>Explore Unit</span>
                                      <ArrowRight size={14} />
                                   </div>
@@ -630,28 +653,28 @@ EMOTIONAL TONE: Be encouraging but keep the sass. If they ask "How am I doing?",
                          </div>
                       </div>
                    ) : (
-                      <div className="space-y-12 pb-20">
-                         <header className="flex items-center justify-between">
+                      <div className="space-y-6 md:space-y-12 pb-20">
+                         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <button 
                               onClick={() => setSelectedChapterId(null)}
-                              className="group flex items-center gap-3 text-slate-500 hover:text-white transition-all"
+                              className="group flex items-center gap-3 text-slate-500 hover:text-white transition-all w-fit"
                             >
                                <div className="p-2 bg-white/5 rounded-xl group-hover:bg-nyra-primary group-hover:text-white transition-all">
                                   <ArrowLeft size={16} />
-                               </div>
-                               <span className="text-xs font-black uppercase tracking-widest">Back to Units</span>
+                                </div>
+                                <span className="text-[10px] font-black uppercase tracking-widest">Back to Units</span>
                             </button>
-                            <div className="text-center">
-                               <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-1">{selectedSubject?.name}</p>
-                               <h2 className="text-3xl font-display font-black tracking-tight text-white">{selectedChapter?.name}</h2>
+                            <div className="text-left md:text-center">
+                               <p className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 mb-1">{selectedSubject?.name}</p>
+                               <h2 className="text-2xl md:text-3xl font-display font-black tracking-tight text-white">{selectedChapter?.name}</h2>
                             </div>
-                            <div className="w-[100px]" /> {/* Spacer for centering */}
+                            <div className="hidden md:block w-[100px]" /> {/* Spacer for centering */}
                          </header>
 
                          <div className="max-w-3xl mx-auto space-y-4">
-                            <div className="flex items-center justify-between px-6 mb-2">
-                               <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-600">Actionable Topics</h4>
-                               <span className="text-[10px] font-black uppercase tracking-widest text-slate-600">Progress Tracking Active</span>
+                            <div className="flex items-center justify-between px-2 md:px-6 mb-2">
+                               <h4 className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.2em] text-slate-600">Actionable Topics</h4>
+                               <span className="hidden md:inline text-[10px] font-black uppercase tracking-widest text-slate-600">Progress Tracking Active</span>
                             </div>
                             
                             {selectedChapter?.topics.map((topic, tidx) => {
@@ -668,49 +691,49 @@ EMOTIONAL TONE: Be encouraging but keep the sass. If they ask "How am I doing?",
                                    animate={{ opacity: 1, x: 0 }}
                                    transition={{ delay: tidx * 0.05 }}
                                    onClick={() => setSelectedTopicId(topic.id)}
-                                   className={`w-full group p-6 rounded-3xl border transition-all flex items-center gap-6 text-left relative overflow-hidden cursor-pointer ${
+                                   className={`w-full group p-4 md:p-6 rounded-3xl border transition-all flex items-center gap-4 md:gap-6 text-left relative overflow-hidden cursor-pointer ${
                                      isSelected 
                                      ? 'bg-nyra-primary/10 border-nyra-primary/30 shadow-2xl' 
                                      : 'bg-white/[0.02] border-white/5 hover:border-white/10'
                                    }`}
                                  >
                                     {/* Visual Status Indicator */}
-                                    <div className="shrink-0">
+                                    <div className="shrink-0 scale-75 md:scale-100">
                                        {isCompleted ? (
                                          <div className="flex flex-col items-center gap-1">
-                                            <div className="w-12 h-12 bg-emerald-500 rounded-full flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
-                                               <CheckCircle2 size={24} />
+                                            <div className="w-10 h-10 md:w-12 md:h-12 bg-emerald-500 rounded-full flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
+                                               <CheckCircle2 className="w-5 h-5 md:w-6 md:h-6" />
                                             </div>
-                                            <span className="text-[8px] font-black text-emerald-500 uppercase tracking-widest mt-1">Completed</span>
+                                            <span className="text-[7px] md:text-[8px] font-black text-emerald-500 uppercase tracking-widest mt-1">Done</span>
                                          </div>
                                        ) : isInProgress ? (
                                          <div className="flex flex-col items-center gap-1">
-                                            <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center text-white shadow-lg shadow-blue-500/20 relative">
-                                               <Clock size={24} />
+                                            <div className="w-10 h-10 md:w-12 md:h-12 bg-blue-500 rounded-full flex items-center justify-center text-white shadow-lg shadow-blue-500/20 relative">
+                                               <Clock className="w-5 h-5 md:w-6 md:h-6" />
                                                <div className="absolute inset-0 border-2 border-white/20 rounded-full animate-pulse" />
                                             </div>
-                                            <span className="text-[8px] font-black text-blue-500 uppercase tracking-widest mt-1">In Progress</span>
+                                            <span className="text-[7px] md:text-[8px] font-black text-blue-500 uppercase tracking-widest mt-1">Study</span>
                                          </div>
                                        ) : (
                                           <div className="flex flex-col items-center gap-1">
-                                            <div className="w-12 h-12 border-2 border-slate-700 rounded-full flex items-center justify-center text-slate-500">
-                                               <Circle size={24} />
+                                            <div className="w-10 h-10 md:w-12 md:h-12 border-2 border-slate-700 rounded-full flex items-center justify-center text-slate-500">
+                                               <Circle className="w-5 h-5 md:w-6 md:h-6" />
                                             </div>
-                                            <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest mt-1">Not Started</span>
-                                         </div>
+                                            <span className="text-[7px] md:text-[8px] font-black text-slate-500 uppercase tracking-widest mt-1">New</span>
+                                          </div>
                                        )}
                                     </div>
 
-                                    <div className="flex-1 space-y-3">
+                                    <div className="flex-1 space-y-2 md:space-y-3">
                                        <div className="flex items-center justify-between">
-                                          <h5 className={`text-lg font-bold tracking-tight ${isSelected ? 'text-white' : 'text-slate-300'}`}>{topic.name}</h5>
+                                          <h5 className={`text-sm md:text-lg font-bold tracking-tight ${isSelected ? 'text-white' : 'text-slate-300'}`}>{topic.name}</h5>
                                           {isInProgress && (
-                                             <span className="text-xs font-black text-blue-500">{progressPercentage}%</span>
+                                             <span className="text-[10px] md:text-xs font-black text-blue-500">{progressPercentage}%</span>
                                           )}
                                        </div>
                                        
                                        {isInProgress && (
-                                          <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden">
+                                          <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden">
                                              <motion.div 
                                                 initial={{ width: 0 }}
                                                 animate={{ width: `${progressPercentage}%` }}
@@ -723,21 +746,21 @@ EMOTIONAL TONE: Be encouraging but keep the sass. If they ask "How am I doing?",
                                           <motion.div 
                                             initial={{ opacity: 0, height: 0 }}
                                             animate={{ opacity: 1, height: 'auto' }}
-                                            className="pt-2 flex items-center gap-4"
+                                            className="pt-2 flex flex-col md:flex-row md:items-center gap-3 md:gap-4"
                                           >
                                              <button 
                                                 onClick={(e) => { e.stopPropagation(); onSelectTopic(topic, selectedChapter?.topics); }}
-                                                className="px-6 py-2.5 bg-nyra-primary text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:brightness-110 shadow-lg shadow-nyra-primary/20"
+                                                className="w-full md:w-fit px-6 py-2.5 bg-nyra-primary text-white rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest hover:brightness-110 shadow-lg shadow-nyra-primary/20"
                                              >
                                                 Enter Session
                                              </button>
-                                             <span className="text-[10px] font-bold text-slate-500 italic">Neural interface ready for this topic...</span>
+                                             <span className="text-[8px] md:text-[10px] font-bold text-slate-500 italic">Neural interface ready...</span>
                                           </motion.div>
                                        )}
                                     </div>
 
-                                    <div className={`ml-auto p-4 rounded-2xl transition-all ${isSelected ? 'bg-nyra-primary text-white' : 'bg-white/5 text-slate-600 group-hover:text-slate-400'}`}>
-                                       <ChevronRight size={20} />
+                                    <div className={`ml-auto p-2 md:p-4 rounded-xl md:rounded-2xl transition-all ${isSelected ? 'bg-nyra-primary text-white' : 'bg-white/5 text-slate-600 group-hover:text-slate-400'}`}>
+                                       <ChevronRight className="w-4 h-4 md:w-5 md:h-5" />
                                     </div>
                                  </motion.div>
                                );
@@ -745,17 +768,17 @@ EMOTIONAL TONE: Be encouraging but keep the sass. If they ask "How am I doing?",
                          </div>
 
                          {/* Quick Review Card */}
-                         <div className="max-w-3xl mx-auto p-8 rounded-[3rem] bg-gradient-to-br from-nyra-primary/20 to-transparent border border-nyra-primary/20 flex items-center justify-between">
-                            <div className="flex items-center gap-6">
-                               <div className="w-16 h-16 bg-nyra-primary/10 rounded-3xl flex items-center justify-center text-nyra-primary">
-                                  <Brain size={32} />
+                         <div className="max-w-3xl mx-auto p-6 md:p-8 rounded-3xl md:rounded-[3rem] bg-gradient-to-br from-nyra-primary/20 to-transparent border border-nyra-primary/20 flex flex-col md:flex-row items-center justify-between gap-6">
+                            <div className="flex items-center gap-4 md:gap-6 text-center md:text-left">
+                               <div className="w-12 h-12 md:w-16 md:h-16 bg-nyra-primary/10 rounded-2xl md:rounded-3xl flex items-center justify-center text-nyra-primary">
+                                  <Brain className="w-6 h-6 md:w-8 md:h-8" />
                                </div>
                                <div>
-                                  <h4 className="text-xl font-bold text-white">Topic Exercises</h4>
-                                  <p className="text-xs text-slate-500 font-medium">Test your understanding with AI generated questions.</p>
+                                  <h4 className="text-lg md:text-xl font-bold text-white">Topic Exercises</h4>
+                                  <p className="text-[10px] md:text-xs text-slate-500 font-medium">Test your understanding with AI diagnostics.</p>
                                </div>
                             </div>
-                            <button className="px-8 py-4 bg-white text-slate-900 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-3 hover:bg-slate-100 transition-all shadow-xl">
+                            <button className="w-full md:w-fit px-8 py-4 bg-white text-slate-900 rounded-2xl font-black text-[9px] md:text-[10px] uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-slate-100 transition-all shadow-xl">
                                Start Drill
                                <Zap size={14} className="fill-current" />
                             </button>
@@ -767,40 +790,41 @@ EMOTIONAL TONE: Be encouraging but keep the sass. If they ask "How am I doing?",
             ) : activeTab === 'flashcards' ? (
         <div className="flex-1 overflow-y-auto pr-4 custom-scrollbar">
           <div className="max-w-4xl mx-auto py-10 space-y-12">
-            <div className="flex items-center justify-between">
-              <div className="flex flex-col gap-2 text-left">
-                <h2 className="text-4xl font-display font-bold tracking-tight">AI Spaced Repetition</h2>
-                <p className="text-slate-500 text-sm font-medium uppercase tracking-[0.2em]">Mistake Recovery • Dynamic Flashcards</p>
+            {/* Flashcards Header - Mobile Optimized */}
+            <div className="flex flex-col md:flex-row items-center justify-between gap-6 px-4">
+              <div className="flex flex-col gap-1 text-center md:text-left">
+                <h2 className="text-2xl md:text-4xl font-display font-bold tracking-tight">AI Recall</h2>
+                <p className="text-slate-500 text-[10px] md:text-sm font-medium uppercase tracking-[0.2em]">Spaced Repetition Engine</p>
               </div>
-              <div className="flex items-center gap-4">
-                 <div className="p-4 bg-nyra-primary/10 border border-nyra-primary/20 rounded-2xl text-center">
-                    <p className="text-[10px] font-black text-nyra-primary uppercase tracking-widest">Due Today</p>
-                    <p className="text-2xl font-black">{dueCards.length}</p>
+              <div className="flex items-center gap-3">
+                 <div className="px-4 py-2 bg-nyra-primary/10 border border-nyra-primary/20 rounded-xl text-center">
+                    <p className="text-[8px] font-black text-nyra-primary uppercase tracking-widest">Due</p>
+                    <p className="text-lg md:text-2xl font-black">{dueCards.length}</p>
                  </div>
-                 <div className="p-4 bg-white/5 border border-white/10 rounded-2xl text-center">
-                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Total Collection</p>
-                    <p className="text-2xl font-black">{profile?.flashcards?.length || 0}</p>
+                 <div className="px-4 py-2 bg-white/5 border border-white/10 rounded-xl text-center">
+                    <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Total</p>
+                    <p className="text-lg md:text-2xl font-black">{profile?.flashcards?.length || 0}</p>
                  </div>
               </div>
             </div>
 
             {!isFlashcardReviewActive ? (
-              <div className="space-y-8">
-                 <div className="p-12 bg-slate-900 border border-white/5 rounded-[3.5rem] text-center space-y-6">
-                    <div className="w-20 h-20 bg-nyra-primary/20 rounded-full flex items-center justify-center mx-auto border border-nyra-primary/30">
-                       <Brain size={40} className="text-nyra-primary" />
+              <div className="space-y-8 px-4">
+                 <div className="p-8 md:p-12 bg-slate-900 border border-white/5 rounded-[2.5rem] md:rounded-[3.5rem] text-center space-y-6">
+                    <div className="w-16 h-16 md:w-20 md:h-20 bg-nyra-primary/20 rounded-full flex items-center justify-center mx-auto border border-nyra-primary/30">
+                       <Brain className="w-8 h-8 md:w-10 md:h-10 text-nyra-primary" />
                     </div>
                     <div className="space-y-2">
-                       <h3 className="text-2xl font-black">Neural Recall Session</h3>
-                       <p className="text-slate-400 max-w-md mx-auto italic">Reviewing mistakes and facts at the optimal time helps you move them from short-term to infinite memory.</p>
+                       <h3 className="text-xl md:text-2xl font-black">Neural Recall</h3>
+                       <p className="text-slate-400 text-xs max-w-sm mx-auto italic">Master your weak points with optimized review cycles.</p>
                     </div>
                     
                     {dueCards.length > 0 ? (
                       <button 
                         onClick={() => setIsFlashcardReviewActive(true)}
-                        className="px-12 py-5 bg-nyra-primary text-white rounded-3xl font-black text-sm uppercase tracking-widest shadow-2xl shadow-nyra-primary/20 hover:scale-105 transition-all"
+                        className="w-full md:w-fit px-12 py-4 md:py-5 bg-nyra-primary text-white rounded-2xl md:rounded-3xl font-black text-xs md:text-sm uppercase tracking-widest shadow-2xl shadow-nyra-primary/20 hover:scale-105 transition-all"
                       >
-                        Start Review Session
+                        Start Session
                       </button>
                     ) : (
                       <div className="flex flex-col items-center gap-4">
@@ -1028,11 +1052,11 @@ EMOTIONAL TONE: Be encouraging but keep the sass. If they ask "How am I doing?",
           {/* Bento Grid: Phase 1 & 2 */}
           <div className="grid grid-cols-1 md:grid-cols-3 md:grid-rows-2 gap-4">
             {/* ERI Widget */}
-            <div className="md:col-span-1 md:row-span-1 p-8 bg-slate-900 border border-white/5 rounded-[2.5rem] flex flex-col items-center justify-center text-center relative group overflow-hidden">
+            <div className="md:col-span-1 md:row-span-1 p-6 md:p-8 bg-slate-900 border border-white/5 rounded-[2rem] md:rounded-[2.5rem] flex flex-col items-center justify-center text-center relative group overflow-hidden">
                <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-nyra-primary/50 to-transparent" />
-               <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-6">Excellence Index</p>
+               <p className="text-[9px] md:text-[10px] font-black text-slate-500 uppercase tracking-widest mb-6">Excellence Index</p>
                <div className="relative mb-4">
-                  <svg className="w-40 h-40 transform -rotate-90">
+                  <svg className="w-32 h-32 md:w-40 md:h-40 transform -rotate-90" viewBox="0 0 160 160">
                     <circle cx="80" cy="80" r="70" fill="none" stroke="rgba(255,255,255,0.02)" strokeWidth="12" />
                     <circle 
                       cx="80" cy="80" r="70" fill="none" stroke="currentColor" strokeWidth="12" 
@@ -1043,13 +1067,13 @@ EMOTIONAL TONE: Be encouraging but keep the sass. If they ask "How am I doing?",
                     />
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-4xl font-black">{profile?.intelligenceProfile?.eri || 78}</span>
-                    <span className="text-[8px] font-black text-slate-500 uppercase">Sector Master</span>
+                    <span className="text-3xl md:text-4xl font-black">{profile?.intelligenceProfile?.eri || 78}</span>
+                    <span className="text-[7px] md:text-[8px] font-black text-slate-500 uppercase tracking-tighter">Sector Master</span>
                   </div>
                </div>
                <div className="flex items-center gap-2 text-emerald-500 bg-emerald-500/10 px-3 py-1 rounded-full">
                   <TrendingUp size={12} />
-                  <span className="text-[9px] font-black uppercase tracking-widest">+12% vs Prev Week</span>
+                  <span className="text-[8px] md:text-[9px] font-black uppercase tracking-widest">+12% Gain</span>
                </div>
             </div>
 

@@ -58,6 +58,13 @@ service cloud.firestore {
              (!('accuracy' in data) || (data.accuracy is number));
     }
 
+    function isValidLearningLog(data) {
+      return data.subjectName is string && data.subjectName.size() <= 256 &&
+             data.chapterName is string && data.chapterName.size() <= 256 &&
+             data.timestamp is timestamp &&
+             (!('discussionSummary' in data) || (data.discussionSummary is string && data.discussionSummary.size() <= 5000));
+    }
+
     // -------------------------------------------------------------------------
     // MATCH BLOCKS
     // -------------------------------------------------------------------------
@@ -65,11 +72,6 @@ service cloud.firestore {
     // Default deny catch-all
     match /{document=**} {
       allow read, write: if false;
-    }
-
-    // Explicit match for messages to debug permissions
-    match /users/{userId}/documents/{docId}/messages/{messageId} {
-      allow read, write: if isSignedIn();
     }
 
     // User profiles and their subcollections
@@ -86,14 +88,22 @@ service cloud.firestore {
         }
       }
 
-      // Performance metrics subcollection
-      match /performance/{perfId} {
-        allow read, write: if isOwner(userId) || isAdmin();
+      // Performance metrics
+      match /performance {
+        allow read: if isOwner(userId) || isAdmin();
+        allow write: if isOwner(userId) || isAdmin();
       }
 
       // Submission subcollection
       match /submissions/{subId} {
         allow read, write: if isOwner(userId) || isAdmin();
+      }
+
+      // Learning logs subcollection
+      match /learning_logs/{logId} {
+        allow read: if isOwner(userId) || isAdmin();
+        allow create, update: if isOwner(userId) && isValidLearningLog(incoming());
+        allow delete: if isOwner(userId) || isAdmin();
       }
     }
 

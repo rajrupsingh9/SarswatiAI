@@ -121,6 +121,25 @@
         },
         "lastAnalyzed": { "type": "string", "format": "date-time" }
       }
+    },
+    "LearningLog": {
+      "title": "Learning Log Entry",
+      "description": "Granular record of what was taught, discussed, and referenced for cross-session continuity.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "subjectId": { "type": "string" },
+        "subjectName": { "type": "string" },
+        "chapterId": { "type": "string" },
+        "chapterName": { "type": "string" },
+        "topicId": { "type": "string" },
+        "topicName": { "type": "string" },
+        "slideIndex": { "type": "number" },
+        "discussionSummary": { "type": "string" },
+        "keyConcepts": { "type": "array", "items": { "type": "string" } },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["subjectName", "chapterName", "timestamp"]
     }
   },
   "firestore": {
@@ -135,6 +154,10 @@
     "/users/{userId}/documents/{docId}/messages": {
       "schema": "ChatMessage",
       "description": "Chat transcript for a specific document study session"
+    },
+    "/users/{userId}/learning_logs/{logId}": {
+      "schema": "LearningLog",
+      "description": "Persistent memory of teaching history and student interactions"
     },
     "/users/{userId}/submissions/{submissionId}": {
       "schema": "Submission",

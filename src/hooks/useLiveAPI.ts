@@ -116,12 +116,12 @@ export function useLiveAPI({
 
     const timeoutId = setTimeout(() => {
       if (!activeSessionRef.current) {
-        console.error("Connection timed out after 15s");
+        console.error("Connection timed out after 30s");
         setError("Connection timed out. Gemini is sleeping or the network is being difficult.");
         setIsConnecting(false);
         stop();
       }
-    }, 15000);
+    }, 30000);
 
     try {
       console.log("Starting Nyra connection to model:", model);

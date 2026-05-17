@@ -3,13 +3,23 @@ import ReactMarkdown from 'react-markdown';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import { motion, AnimatePresence } from 'motion/react';
-import { Send, User, Sparkles, ChevronRight, ChevronLeft, MinusCircle } from 'lucide-react';
+import { Send, User, Sparkles, ChevronRight, ChevronLeft, MinusCircle, Paperclip, X, Image as ImageIcon, FileText } from 'lucide-react';
 
 export interface ChatMessage {
   id: string;
   role: 'user' | 'nyra';
   text: string;
   timestamp: Date;
+  interactive?: {
+    type: 'mcq' | 'text-input';
+    question?: string;
+    options?: string[];
+    correctIndex?: number;
+    prompt?: string;
+    expected?: string;
+    submitted?: boolean;
+    userChoice?: string;
+  };
 }
 
 interface ChatSidebarProps {
@@ -21,7 +31,10 @@ interface ChatSidebarProps {
   input: string;
   setInput: (val: string) => void;
   onSendMessage: () => void;
+  onInteractiveSubmit?: (id: string, response: string) => void;
   loading: boolean;
+  selectedFile?: File | null;
+  setSelectedFile?: (file: File | null) => void;
 }
 
 export const ChatSidebar: React.FC<ChatSidebarProps> = ({ 
@@ -33,9 +46,42 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
   input,
   setInput,
   onSendMessage,
-  loading
+  loading,
+  selectedFile = null,
+  setSelectedFile,
+  onInteractiveSubmit
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [filePreview, setFilePreview] = React.useState<string | null>(null);
+
+  useEffect(() => {
+    if (selectedFile) {
+      if (selectedFile.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setFilePreview(reader.result as string);
+        };
+        reader.readAsDataURL(selectedFile);
+      } else {
+        setFilePreview(null);
+      }
+    } else {
+      setFilePreview(null);
+    }
+  }, [selectedFile]);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && setSelectedFile) {
+      setSelectedFile(file);
+    }
+  };
+
+  const clearFile = () => {
+    if (setSelectedFile) setSelectedFile(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -261,6 +307,71 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                       >
                         {msg.text}
                       </ReactMarkdown>
+
+                      {/* Interactive Components */}
+                      {msg.interactive && (
+                        <div className="mt-4 p-3 bg-white/5 border border-white/10 rounded-xl space-y-3 relative z-20">
+                          {msg.interactive.type === 'mcq' && (
+                            <>
+                              <p className="font-bold text-nyra-primary text-xs mb-2 italic">Quick Quiz: {msg.interactive.question}</p>
+                              <div className="grid grid-cols-1 gap-2">
+                                {msg.interactive.options?.map((opt, idx) => (
+                                  <button
+                                    key={idx}
+                                    disabled={msg.interactive?.submitted}
+                                    onClick={() => onInteractiveSubmit?.(msg.id, opt)}
+                                    className={`w-full text-left px-4 py-3 rounded-lg text-xs font-medium transition-all flex items-center justify-between group/opt ${
+                                      msg.interactive?.submitted 
+                                        ? msg.interactive.userChoice === opt
+                                          ? 'bg-nyra-primary/20 border-nyra-primary text-nyra-primary'
+                                          : 'bg-slate-800/50 border-slate-700 text-slate-500 opacity-50'
+                                        : 'bg-slate-800 border-slate-700 hover:border-nyra-primary hover:bg-nyra-primary/10 text-slate-300'
+                                    } border`}
+                                  >
+                                    <span>{opt}</span>
+                                    {!msg.interactive?.submitted && (
+                                      <ChevronRight className="w-3 h-3 opacity-0 group-hover/opt:opacity-100 transition-opacity" />
+                                    )}
+                                  </button>
+                                ))}
+                              </div>
+                            </>
+                          )}
+
+                          {msg.interactive.type === 'text-input' && (
+                            <div className="space-y-2">
+                              <p className="font-bold text-amber-400 text-xs italic">{msg.interactive.prompt}</p>
+                              {!msg.interactive.submitted ? (
+                                <div className="flex gap-2">
+                                  <input 
+                                    type="text"
+                                    placeholder="Type your answer..."
+                                    className="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-nyra-primary transition-all"
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') {
+                                        onInteractiveSubmit?.(msg.id, (e.target as HTMLInputElement).value);
+                                      }
+                                    }}
+                                  />
+                                  <button 
+                                    onClick={(e) => {
+                                      const input = (e.currentTarget.previousSibling as HTMLInputElement).value;
+                                      if (input) onInteractiveSubmit?.(msg.id, input);
+                                    }}
+                                    className="p-2 bg-nyra-primary text-slate-900 rounded-lg hover:bg-nyra-primary/80 transition-colors"
+                                  >
+                                    <Send className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <div className="p-2 bg-slate-800/50 rounded-lg border border-slate-700 text-slate-400 text-xs italic">
+                                  Response sent: <span className="text-nyra-primary font-bold">{msg.interactive.userChoice}</span>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                     <div className="mt-2 text-[8px] text-slate-600 font-mono text-right">
                       {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -285,22 +396,81 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
 
         {/* Input Area */}
         <div className="p-4 border-t border-nyra-border bg-slate-900/50">
-          <div className="relative">
+          <AnimatePresence>
+            {selectedFile && (
+              <motion.div 
+                initial={{ opacity: 0, y: 10, height: 0 }}
+                animate={{ opacity: 1, y: 0, height: 'auto' }}
+                exit={{ opacity: 0, y: 10, height: 0 }}
+                className="mb-3 p-2 bg-slate-950 border border-nyra-border rounded-xl flex items-center gap-3 relative overflow-hidden"
+              >
+                {filePreview ? (
+                  <div className="w-12 h-12 rounded-lg overflow-hidden border border-white/10 shrink-0">
+                    <img src={filePreview} alt="Preview" className="w-full h-full object-cover" />
+                  </div>
+                ) : (
+                  <div className="w-12 h-12 rounded-lg bg-nyra-primary/10 flex items-center justify-center shrink-0">
+                    <FileText className="w-6 h-6 text-nyra-primary" />
+                  </div>
+                )}
+                
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-bold text-slate-200 truncate">{selectedFile.name}</p>
+                  <p className="text-[10px] text-slate-500 uppercase">
+                    {(selectedFile.size / 1024).toFixed(1)} KB • {selectedFile.type.split('/')[1]?.toUpperCase()}
+                  </p>
+                </div>
+
+                <button 
+                  onClick={clearFile}
+                  className="p-1.5 hover:bg-white/10 rounded-full transition-colors text-slate-400 hover:text-rose-500"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+                
+                {/* Progress bar effect for aesthetic */}
+                <div className="absolute bottom-0 left-0 h-0.5 bg-nyra-primary/30 w-full animate-pulse" />
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <div className="relative flex items-center gap-2">
             <input 
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && onSendMessage()}
-              placeholder="Ask anything..."
-              className="w-full bg-slate-950 border border-nyra-border rounded-xl py-3 pl-4 pr-12 text-sm focus:outline-none focus:border-nyra-primary transition-all placeholder:text-slate-600"
+              type="file" 
+              ref={fileInputRef}
+              onChange={handleFileSelect}
+              accept="image/*,.pdf"
+              className="hidden"
             />
             <button 
-              onClick={onSendMessage}
-              disabled={loading || !input.trim()}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-nyra-primary hover:bg-nyra-primary/20 rounded-lg transition-all disabled:opacity-30"
+              onClick={() => fileInputRef.current?.click()}
+              className={`p-2 rounded-xl border transition-all ${
+                selectedFile 
+                  ? 'border-nyra-primary bg-nyra-primary/10 text-nyra-primary shadow-[0_0_15px_rgba(51,204,255,0.2)]' 
+                  : 'border-nyra-border bg-slate-950 text-slate-500 hover:border-nyra-primary/50'
+              }`}
+              title="Upload photo or PDF of your work"
             >
-              <Send className="w-4 h-4" />
+              <Paperclip className="w-5 h-5" />
             </button>
+
+            <div className="relative flex-1">
+              <input 
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && onSendMessage()}
+                placeholder={selectedFile ? "Tell Nyra about this file..." : "Ask anything..."}
+                className="w-full bg-slate-950 border border-nyra-border rounded-xl py-3 pl-4 pr-12 text-sm focus:outline-none focus:border-nyra-primary transition-all placeholder:text-slate-600"
+              />
+              <button 
+                onClick={onSendMessage}
+                disabled={loading || (!input.trim() && !selectedFile)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-nyra-primary hover:bg-nyra-primary/20 rounded-lg transition-all disabled:opacity-30"
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            </div>
           </div>
           <div className="mt-2 text-[9px] text-center text-slate-500 italic">
             "Don't worry, I won't bite... unless it's a snack! 🍪"
