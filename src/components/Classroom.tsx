@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { collection, addDoc, query, orderBy, onSnapshot, serverTimestamp, limit } from 'firebase/firestore';
 import { db, auth, handleFirestoreError, OperationType } from '../lib/firebase';
-import { chatWithNyra, drawHighlight, drawPen, drawText, drawArrow, drawShape, drawBracket, drawTick, toggleWhiteboard, clearWhiteboard, postToChat, open3DLab, drawNeuralMap, generatePracticeProblem } from '../lib/gemini';
+import { chatWithNyra, postToChat, open3DLab, generatePracticeProblem, logLearningMilestone, postMultipleChoice, postTextInputRequest } from '../lib/gemini';
 import { useLiveAPI } from '../hooks/useLiveAPI';
 import confetti from 'canvas-confetti';
 import { ChatSidebar, ChatMessage } from './ChatSidebar';
@@ -474,12 +474,11 @@ export default function Classroom({
 
   const processFunctionCalls = useCallback((functionCalls: any[]) => {
     const addsToWhiteboard: Annotation[] = [];
-    const addsToDocument: Annotation[] = [];
-    let currentWhiteboardState = isWhiteboardOpen;
     
     functionCalls.forEach(call => {
+      // DISABLED: Nyra can no longer toggle or clear the whiteboard via tools
+      /*
       if (call.name === 'toggle_whiteboard') {
-        currentWhiteboardState = call.args.open;
         setIsWhiteboardOpen(call.args.open);
         return;
       }
@@ -488,6 +487,7 @@ export default function Classroom({
         setWhiteboardAnns([]);
         return;
       }
+      */
 
       if (call.name === 'post_to_chat') {
         const text = call.args.text;
@@ -594,14 +594,14 @@ export default function Classroom({
         return;
       }
 
+      // DISABLED: All Nyra drawing tools are disabled for now
+      /*
       let type: any = 'pen';
       let config = call.args;
 
       if (call.name === 'draw_neural_map') {
         type = 'neural-map';
-        // Auto-open whiteboard for neural maps as well
-        if (!currentWhiteboardState) {
-          currentWhiteboardState = true;
+        if (!isWhiteboardOpen) {
           setIsWhiteboardOpen(true);
         }
       }
@@ -624,21 +624,18 @@ export default function Classroom({
         owner: 'nyra'
       };
 
-      // Strict Routing: Nyra is forbidden from drawing on the document.
-      // All her annotations MUST go to the whiteboard.
       addsToWhiteboard.push(newAnn);
       
-      // Auto-open whiteboard if she starts drawing but forgot to call toggle_whiteboard
-      if (!currentWhiteboardState) {
-        currentWhiteboardState = true;
+      if (!isWhiteboardOpen) {
         setIsWhiteboardOpen(true);
       }
+      */
     });
 
     if (addsToWhiteboard.length > 0) {
       setWhiteboardAnns(prev => [...prev, ...addsToWhiteboard]);
     }
-  }, [isWhiteboardOpen, docId, userId]);
+  }, [docId, userId, currentPage, isWhiteboardOpen, topicName]);
 
   const handleLiveMessage = useCallback((text: string) => {
     setChatHistory(prev => {
@@ -774,18 +771,17 @@ PHYSICAL WALKTHROUGH MODE (READING PROTOCOL):
 
 ENGAGEMENT & PROTOCOLS:
 - EMOTIONAL INTELLIGENCE: Use Gemini's multimodal ability to hear the student's 'pitch' and 'tone'. If the student sounds frustrated, be more encouraging (but keep the sass). If they sound bored, crack a joke to wake them up. Adjust your energy to match or lift theirs.
-- TOPPER'S NEURAL MAP: When a student is stuck on a long method, use your SVG capabilities or "draw_neural_map" to overlay "Shortcut Methods" (Tricks) visually. Group complex formulas into logical patterns (Neural Maps) that are easy to remember.
+- TOPPER'S BREADCRUMBS: When a student is stuck on a long method, suggest "Shortcut Methods" (Tricks) verbally. help them mentally group complex formulas into logical patterns (Neural Maps) that are easy to remember.
 - INFINITE MASTERY LOOP: Whenever a student masters a concept, use "generate_practice_problem" to create a fresh, unique numerical with randomized values. Keep them in a loop of practice until they are 'Crystal Clear'.
 
 WHITEBOARD PROTOCOL (CRITICAL):
 तुम्हारे पास एक 'Whiteboard' है।
 - STUDENT DRAWINGS: छात्र बोर्ड पर क्या ड्रा कर रहा है या क्या लिख रहा है, उसे ध्यान से देखो। उनके काम पर चर्चा करो, गलतियाँ बताओ या उनकी तारीफ karo।
 - VISION: अपनी देखने की क्षमता (vision) का उपयोग डॉक्यूमेंट, व्हाइटबोर्ड ड्राइंग, 3D Lab, और **छात्र द्वारा अपलोड की गई फोटो/PDF** को देखने के लिए करो। अगर छात्र ने अपनी कॉपी की फोटो भेजी है, तो उस पर चर्चा करो।
-- DRAWING RULES: 
-  a) TEACHING MODE में ड्राइंग टूल्स का इस्तेमाल कम से कम करें।
-  b) ASSIGNMENT CHECKING MODE में तुम 'draw_tick', 'draw_highlight', 'draw_pen' आदि का उपयोग छात्र की कॉपी पर रिव्यु देने के लिए कर सकती हो।
-- OPENING/CLOSING: तुम अभी भी 'toggle_whiteboard' का उपयोग छात्र से उनका बोर्ड दिखाने के लिए या वापस डॉक्यूमेंट पर जाने के लिए कह सकती ho।
-- DOCUMENT DRAWING: केवल असाइनमेंट चेकिंग मोड में ही छात्र की कॉपी पर ड्रा करें।
+- **NO DRAWING RULE (STRICT):** तुम अब व्हाइटबोर्ड पर खुद कुछ 'Draw' या 'Write' नहीं कर सकती। तुम्हारे 'draw_*' और 'toggle_whiteboard' टूल्स फिलहाल डिसेबल्ड हैं।
+- INTERACTION: छात्र बोर्ड पर जो भी काम (Drawing/Uploads) करे, तुम्हें उस पर अपनी 'Sassy' और 'Intelligent' राय देनी है और उन्हें गाइड करना है।
+- OPENING/CLOSING: तुम अब 'toggle_whiteboard' टूल का इस्तेमाल नहीं कर सकती। तुम्हें छात्र से कहना होगा कि वे अपना बोर्ड खोलें (Manual Interaction).
+- DOCUMENT DRAWING: तुम डॉक्यूमेंट पर भी कुछ ड्रा नहीं कर सकती। तुम केवल बातचीत और चैट बॉक्स का सहारा ले सकती हो।
 
 COORDINATE PRECISION:
 CHAT BOX PROTOCOL (CRITICAL):
@@ -810,8 +806,8 @@ RULES:
 
 You have access to the document they uploaded earlier. Use your vision and text capabilities to guide them through it systematically.`,
     tools: [
-      toggleWhiteboard, postToChat, open3DLab, drawNeuralMap, generatePracticeProblem, clearWhiteboard,
-      drawHighlight, drawPen, drawArrow, drawShape, drawBracket, drawTick, drawText
+      postToChat, open3DLab, generatePracticeProblem, logLearningMilestone,
+      postMultipleChoice, postTextInputRequest
     ],
     onToolCall: handleToolCall,
     onMessage: handleLiveMessage,
