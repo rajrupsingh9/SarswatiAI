@@ -31,6 +31,7 @@ export default function App() {
   const [currentChapterTopics, setCurrentChapterTopics] = useState<any[]>([]);
   const [currentTopicId, setCurrentTopicId] = useState<string | null>(null);
   const [currentTopicFocus, setCurrentTopicFocus] = useState<'BOARDS' | 'JEE' | 'FOUNDATION' | undefined>(undefined);
+  const [currentLearningObjectives, setCurrentLearningObjectives] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
   const [errorStatus, setErrorStatus] = useState<string | null>(null);
@@ -255,6 +256,7 @@ export default function App() {
     setCurrentChapterTopics(chapterTopics);
     setCurrentTopicId(topic.id || null);
     setCurrentTopicFocus(topic.focus);
+    setCurrentLearningObjectives(topic.learningObjectives || []);
     setPages(topic.pages || []);
     setSubmissionPages(processedSubmissionPages);
     setIsSubmission(!!topic.isSubmission);
@@ -466,6 +468,7 @@ export default function App() {
               onExit={handleExitClass} 
               chapterTopics={currentChapterTopics}
               currentTopicId={currentTopicId || undefined}
+              learningObjectives={currentLearningObjectives}
             />
           </motion.div>
         ) : null}

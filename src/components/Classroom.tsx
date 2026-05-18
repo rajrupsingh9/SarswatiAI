@@ -31,6 +31,7 @@ interface ClassroomProps {
   onExit: () => void;
   chapterTopics?: Topic[];
   currentTopicId?: string;
+  learningObjectives?: string[];
 }
 
 interface Message {
@@ -329,11 +330,13 @@ export default function Classroom({
   topicFocus,
   isSubmission = false,
   chapterTopics = [],
-  currentTopicId: initialTopicId = null
+  currentTopicId: initialTopicId = null,
+  learningObjectives: initialObjectives = []
 }: ClassroomProps) {
   const [pages, setPages] = useState(isSubmission ? submissionPages : initialPages);
   const [textLayers, setTextLayers] = useState(initialTextLayers);
   const [currentTopicId, setCurrentTopicId] = useState(initialTopicId);
+  const [learningObjectives, setLearningObjectives] = useState<string[]>(initialObjectives);
   const [showTopicOverview, setShowTopicOverview] = useState(false);
   const [direction, setDirection] = useState(0);
 
@@ -733,6 +736,15 @@ NYRA FOUNDATION MODE (KNOWLEDGE BUILDER):
 - CONCEPT: 'First Principles' और 'Basics' पर फोकस करो। कठिन गणित को कहानियों से समझाओ।
 - VOICE: ज़्यादा मज़ाकिया और दोस्ताना रहो। 
 - GOAL: सब्जेक्ट में इंटरेस्ट पैदा करना।
+` : ''}
+
+${learningObjectives && learningObjectives.length > 0 ? `
+KEY LEARNING OBJECTIVES FOR THIS SESSION (MANDATORY):
+तुम्हें इस टॉपिक ("${topicName || 'Current Topic'}") में ये ज़रूरी पॉइंट्स कवर करने हैं:
+${learningObjectives.map((obj, i) => `${i + 1}. ${obj}`).join('\n')}
+
+INSTRUCTION: 
+तुम्हें यह सुनिश्चित करना है कि छात्र इस सेशन के खत्म होने तक इन सभी पॉइंट्स को समझ ले। इन पॉइंट्स को छोड़ना (skip) सख्त मना है। इन पॉइंट्स के आधार पर ही छात्र से सवाल पूछो और चर्चा करो।
 ` : ''}
 
 तुम्हें छात्र के इन सभी प्रोग्रेस डेटा का पता है। 
@@ -1409,6 +1421,7 @@ You have access to the document they uploaded earlier. Use your vision and text 
     
     setPages(newTopic.pages);
     setTextLayers(newTopic.textLayers || []);
+    setLearningObjectives(newTopic.learningObjectives || []);
     setCurrentTopicId(topicId);
     setCurrentPage(0);
     setShowTopicOverview(false);

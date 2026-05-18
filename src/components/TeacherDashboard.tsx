@@ -49,6 +49,8 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ data, onUpdateData,
   const [editingChapter, setEditingChapter] = useState<{ classId: string, subjectId: string, id: string, name: string, focus: FocusGoal } | null>(null);
   const [editingTopic, setEditingTopic] = useState<{ classId: string, subjectId: string, chapterId: string, id: string, name: string, focus: FocusGoal } | null>(null);
   const [editingClass, setEditingClass] = useState<{ id: string, name: string } | null>(null);
+  const [isEditingObjectives, setIsEditingObjectives] = useState<{ classId: string, subjectId: string, chapterId: string, topicId: string, name: string, objectives: string[] } | null>(null);
+  const [tempObjectives, setTempObjectives] = useState("");
 
   const [announcementText, setAnnouncementText] = useState("");
   const [announcements, setAnnouncements] = useState<any[]>([]);
@@ -727,6 +729,48 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ data, onUpdateData,
     onUpdateData(newData);
   };
 
+  const handleUpdateObjectives = () => {
+    if (!isEditingObjectives) return;
+    
+    // Split by newline and filter empty
+    const objectivesList = tempObjectives.split('\n').map(o => o.trim()).filter(o => o !== "");
+    
+    const newData = data.map(c => {
+      if (c.id === isEditingObjectives.classId) {
+        return {
+          ...c,
+          subjects: c.subjects.map(s => {
+            if (s.id === isEditingObjectives.subjectId) {
+              return {
+                ...s,
+                chapters: s.chapters.map(ch => {
+                  if (ch.id === isEditingObjectives.chapterId) {
+                    return {
+                      ...ch,
+                      topics: ch.topics.map(t => {
+                        if (t.id === isEditingObjectives.topicId) {
+                          return { ...t, learningObjectives: objectivesList };
+                        }
+                        return t;
+                      })
+                    };
+                  }
+                  return ch;
+                })
+              };
+            }
+            return s;
+          })
+        };
+      }
+      return c;
+    });
+
+    onUpdateData(newData);
+    setIsEditingObjectives(null);
+    setTempObjectives("");
+  };
+
   const deleteChapter = (classId: string, subjectId: string, chapterId: string) => {
     if (!confirm("Are you sure you want to delete this chapter?")) return;
     const newData = data.map(c => {
@@ -933,6 +977,27 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ data, onUpdateData,
                                   </div>
 
                                   <div className="flex flex-wrap items-center gap-3">
+                                    <button 
+                                      onClick={() => {
+                                        setTempObjectives((t.learningObjectives || []).join('\n'));
+                                        setIsEditingObjectives({
+                                          classId: selectedClass.id,
+                                          subjectId: sub.id,
+                                          chapterId: ch.id,
+                                          topicId: t.id,
+                                          name: t.name,
+                                          objectives: t.learningObjectives || []
+                                        });
+                                      }}
+                                      className={`flex items-center gap-2 px-3 py-1.5 border rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${
+                                        t.learningObjectives && t.learningObjectives.length > 0 
+                                          ? 'bg-nyra-primary/10 border-nyra-primary/30 text-nyra-primary hover:bg-nyra-primary hover:text-white' 
+                                          : 'bg-white/5 border-white/5 text-slate-500 hover:text-white'
+                                      }`}
+                                    >
+                                      <List size={10} /> {t.learningObjectives && t.learningObjectives.length > 0 ? 'Objectives: Set' : '+ Objectives'}
+                                    </button>
+
                                     {/* DPP Toggle */}
                                     <div className="relative group/btn">
                                       {t.dpp ? (
@@ -1442,6 +1507,74 @@ const TeacherDashboard: React.FC<TeacherDashboardProps> = ({ data, onUpdateData,
                   <div className="flex items-center gap-4 pt-4">
                     <button onClick={() => setEditingTopic(null)} className="flex-1 px-6 py-4 border border-white/5 text-slate-500 rounded-2xl font-black text-[10px] uppercase tracking-widest">Discard</button>
                     <button onClick={handleUpdateTopic} className="flex-[2] px-6 py-4 bg-emerald-500 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest">Apply Shifts</button>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
+        
+        {/* Learning Objectives Modal */}
+        <AnimatePresence>
+          {isEditingObjectives && (
+            <div className="fixed inset-0 z-[150] flex items-center justify-center p-6 px-4">
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsEditingObjectives(null)}
+                className="absolute inset-0 bg-black/90 backdrop-blur-md"
+              />
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                className="w-full max-w-2xl bg-slate-900 border border-white/10 rounded-[3rem] p-10 relative z-10 shadow-2xl"
+              >
+                <div className="flex items-center gap-4 mb-8">
+                   <div className="w-14 h-14 rounded-2xl bg-nyra-primary/10 flex items-center justify-center text-nyra-primary">
+                      <List size={28} />
+                   </div>
+                   <div>
+                      <h2 className="text-3xl font-display font-black tracking-tighter text-white">Learning Objectives</h2>
+                      <p className="text-slate-400 text-sm">Set instructions and key points for Nyra to cover in "{isEditingObjectives.name}".</p>
+                   </div>
+                </div>
+                
+                <div className="space-y-6">
+                  <div>
+                    <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block mb-4 px-1 flex items-center gap-2">
+                       <Sparkles size={12} className="text-nyra-primary" />
+                       Key Learning Points (One per line)
+                    </label>
+                    <textarea 
+                      autoFocus
+                      value={tempObjectives}
+                      onChange={(e) => setTempObjectives(e.target.value)}
+                      placeholder="What should the student learn by the end of this session or slide?&#10;Point 1: Explain the core logic of...&#10;Point 2: Solve 3 complex problems on...&#10;Point 3: Mention the historical context of..."
+                      className="w-full bg-black/40 border border-white/5 rounded-3xl px-8 py-6 text-sm focus:border-nyra-primary outline-none text-white transition-all min-h-[250px] resize-none leading-relaxed"
+                    />
+                  </div>
+                  
+                  <div className="p-4 bg-nyra-primary/5 border border-nyra-primary/10 rounded-2xl">
+                    <p className="text-[10px] text-nyra-primary/80 font-medium italic leading-relaxed">
+                      "Nyra will internalize these points as her core mission for this topic. She will ensure they are discussed and mastered before finishing the session."
+                    </p>
+                  </div>
+                  
+                  <div className="flex items-center gap-4 pt-4">
+                    <button 
+                      onClick={() => setIsEditingObjectives(null)}
+                      className="flex-1 px-6 py-4 border border-white/5 text-slate-500 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:text-white transition-all"
+                    >
+                      Discard
+                    </button>
+                    <button 
+                      onClick={handleUpdateObjectives}
+                      className="flex-[2] px-6 py-4 bg-nyra-primary text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl shadow-nyra-primary/20"
+                    >
+                      Deploy Objectives
+                    </button>
                   </div>
                 </div>
               </motion.div>

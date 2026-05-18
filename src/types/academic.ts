@@ -16,6 +16,7 @@ export interface Topic {
   focus: FocusGoal;
   pages: string[]; // Array of base64 image strings
   textLayers?: TextLayer[]; // Text information for each page
+  learningObjectives?: string[]; // Key points to cover during teaching
   dpp?: {
     id: string;
     name: string;
